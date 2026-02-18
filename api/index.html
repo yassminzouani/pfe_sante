@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PFE Santé - Carte</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+  <style>
+    #map { height: 100vh; }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+  const map = L.map('map');
+
+  // Fond de carte
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  // Rectangle "monde"
+  const worldRing = [
+    [-90, -180],
+    [-90,  180],
+    [ 90,  180],
+    [ 90, -180]
+  ];
+
+  // 1) Charger le contour Maroc (dissolution provinces)
+  fetch("http://127.0.0.1:8000/morocco_outline")
+    .then(r => r.json())
+    .then(geo => {
+
+      // A) Bounds EXACTS du Maroc (plus précis que des coords à la main)
+      const moroccoLayer = L.geoJSON(geo);
+      const moroccoBounds = moroccoLayer.getBounds();
+
+      map.fitBounds(moroccoBounds);
+      map.setMaxBounds(moroccoBounds.pad(0.15)); // petite marge pour confort
+      map.options.maxBoundsViscosity = 1.0;
+      map.setMinZoom(map.getZoom()); // bloque le zoom-out au Maroc
+      map.setMaxZoom(12);
+
+      // B) Construire les "trous" à partir de la géométrie Maroc
+      const moroccoGeom = geo.features[0].geometry;
+      let holes = [];
+
+      if (moroccoGeom.type === "Polygon") {
+        holes.push(moroccoGeom.coordinates[0].map(([lng, lat]) => [lat, lng]));
+      } else if (moroccoGeom.type === "MultiPolygon") {
+        moroccoGeom.coordinates.forEach(poly => {
+          holes.push(poly[0].map(([lng, lat]) => [lat, lng]));
+        });
+      }
+
+      // C) Masque OPAQUE (cache totalement tout sauf Maroc)
+      L.polygon(
+        [worldRing, ...holes],
+        {
+          stroke: false,
+          fillColor: "#111",     // couleur du masque
+          fillOpacity: 1.0,      // <-- OPAQUE = cache le reste
+          fillRule: "evenodd",   // <-- IMPORTANT pour le trou
+          interactive: false
+        }
+      ).addTo(map);
+      
+function getColor(n) {
+  return n > 20 ? "#08306b" :
+         n > 10 ? "#2171b5" :
+         n >  5 ? "#6baed6" :
+         n >  2 ? "#bdd7e7" :
+                  "#eff3ff";
+}
+
+fetch("http://127.0.0.1:8000/provinces_stats")
+  .then(r => r.json())
+  .then(data => {
+    L.geoJSON(data, {
+      style: (f) => ({
+        color: "#333",
+        weight: 1,
+        fillOpacity: 0.75,
+        fillColor: getColor(f.properties.nb_facilities)
+      }),
+      onEachFeature: (f, layer) => {
+        layer.bindPopup(
+          `<b>${f.properties.name}</b><br>
+           Etablissements: ${f.properties.nb_facilities}`
+        );
+      }
+    }).addTo(map);
+  });
+
+      // 2) Provinces (toujours visibles)
+      fetch("http://127.0.0.1:8000/provinces")
+        .then(res => res.json())
+        .then(data => {
+          L.geoJSON(data, {
+            style: { color: "#0077ff", weight: 1, fillOpacity: 0.10 },
+            onEachFeature: (feature, layer) =>
+              layer.bindPopup("<b>" + feature.properties.name + "</b>")
+          }).addTo(map);
+        });
+
+      // 3) Facilities (points)
+      fetch("http://127.0.0.1:8000/facilities")
+        .then(res => res.json())
+        .then(data => {
+          L.geoJSON(data, {
+            pointToLayer: (feature, latlng) =>
+              L.circleMarker(latlng, {
+                radius: 6, fillColor: "red", color: "#000",
+                weight: 1, fillOpacity: 0.8
+              }),
+            onEachFeature: (feature, layer) =>
+              layer.bindPopup("<b>" + feature.properties.name + "</b><br>Type: " + feature.properties.type)
+          }).addTo(map);
+        });
+
+    });
+</script>
+</body>
+</html>
