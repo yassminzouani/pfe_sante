@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Carte Santé Maroc</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="ui">
+  <!-- ✅ Filtre catégorie -->
+  <label>Catégorie :</label>
+  <select id="categoryFilter">
+    <option value="">Toutes les catégories</option>
+  </select>
+
+  <label style="margin-left:10px;">Découpage :</label>
+  <select id="decoupage">
+    <option value="regions">Régions</option>
+    <option value="provinces">Provinces</option>
+    <option value="communes">Communes</option>
+  </select>
+
+  <label style="margin-left:10px;">
+    <input type="checkbox" id="toggleFacilities" checked>
+    Établissements
+  </label>
+
+  <button id="reset" style="margin-left:10px;">Reset</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="js/map.js"></script>
+</body>
+</html>
