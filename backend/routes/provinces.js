@@ -4,38 +4,51 @@ const pool = require("../db");
 
 router.get("/", async (req, res) => {
   try {
-    const { rows } = await pool.query(`
+    const { region } = req.query;
+
+    let query = `
       SELECT
-        p."Code_Provi" AS province_code,
-        p."nom"        AS province_nom,
-        r."CODE_REGIO" AS region_code,
-        r."nom_region" AS region_nom,
-        ST_AsGeoJSON(p.geometry) AS geometry
-      FROM provinces p
-      JOIN LATERAL (
-        SELECT r2.*
-        FROM regions r2
-        WHERE ST_Intersects(r2.geometry, p.geometry)
-        ORDER BY ST_Area(ST_Intersection(r2.geometry, p.geometry)) DESC
-        LIMIT 1
-      ) r ON true
-    `);
+        code_province,
+        code_region,
+        nom,
+        superficie,
+        population_rgph_2024,
+        ST_AsGeoJSON(geometry) AS geometry
+      FROM provinces
+      WHERE geometry IS NOT NULL
+    `;
+
+    const params = [];
+
+    if (region) {
+      params.push(region);
+      query += ` AND code_region = $${params.length}`;
+    }
+
+    query += ` ORDER BY nom`;
+
+    const { rows } = await pool.query(query, params);
 
     res.json({
       type: "FeatureCollection",
-      features: rows.map(r => ({
+      features: rows.map((p) => ({
         type: "Feature",
-        geometry: JSON.parse(r.geometry),
+        geometry: JSON.parse(p.geometry),
         properties: {
-          region: r.region_code,
-          province: r.province_code,
-          label: r.province_nom,
-          region_nom: r.region_nom,
-          province_nom: r.province_nom
+          code_province: p.code_province,
+          code_region: p.code_region,
+          nom: p.nom,
+          superficie: p.superficie,
+          population_rgph_2024: p.population_rgph_2024,
+          province: p.code_province,
+          region: p.code_region,
+          label: p.nom,
+          population: p.population_rgph_2024
         }
       }))
     });
   } catch (err) {
+    console.error("Erreur /provinces :", err);
     res.status(500).json({ error: err.message });
   }
 });

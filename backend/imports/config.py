@@ -11,7 +11,6 @@ engine = create_engine(
     future=True
 )
 
-# chemins (comme tu as mis les fichiers dans imports/)
 REGION_FILE   = r".\data\region.gpkg"
 PROVINCE_FILE = r".\data\provinces.gpkg"
 COMMUNE_FILE  = r".\data\commune.gpkg"

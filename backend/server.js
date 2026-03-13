@@ -1,24 +1,29 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
+const path = require("path");
 
-const provincesRoute = require("./routes/provinces");
-const communesRoute = require("./routes/communes");
-
-const facilitiesRoute = require("./routes/facilities");
-const regionsRoute = require("./routes/regions");
+const regionsRouter = require("./routes/regions");
+const provincesRouter = require("./routes/provinces");
+const communesRouter = require("./routes/communes");
+const etablissementsRouter = require("./routes/etablissements");
+const pharmaciesRouter = require("./routes/pharmacies");
 
 const app = express();
+const PORT = 3000;
+
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/facilities", facilitiesRoute);
-app.use("/api/regions", regionsRoute);
+// servir le frontend
+app.use(express.static(path.join(__dirname, "../frontend")));
 
-app.use("/api/provinces", provincesRoute);
-app.use("/api/communes", communesRoute);
+// routes API
+app.use("/api/regions", regionsRouter);
+app.use("/api/provinces", provincesRouter);
+app.use("/api/communes", communesRouter);
+app.use("/api/etablissements", etablissementsRouter);
+app.use("/api/pharmacies", pharmaciesRouter); 
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
+  console.log(`Serveur lancé sur http://localhost:${PORT}`);
 });

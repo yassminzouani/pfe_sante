@@ -1,161 +1,117 @@
 const API = "http://localhost:3000/api";
 
-// ====== Map + bounds Maroc ======
 const marocBounds = [
   [20.5, -17.5],
   [36.0, -1.0]
 ];
 
-const map = L.map("map", { minZoom: 5, maxZoom: 12 }).fitBounds(marocBounds);
+const map = L.map("map", {
+  minZoom: 6,
+  maxZoom: 12,
+  preferCanvas: true
+}).fitBounds(marocBounds);
+
+const pharmaciesGroup = L.layerGroup().addTo(map);
+let pharmaciesLayer = null;
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap"
 }).addTo(map);
 
-// ====== panes ======
-map.createPane("maskPane");   map.getPane("maskPane").style.zIndex = 200;
-map.createPane("adminPane");  map.getPane("adminPane").style.zIndex = 400;
-map.createPane("pointsPane"); map.getPane("pointsPane").style.zIndex = 500;
+map.createPane("maskPane");
+map.getPane("maskPane").style.zIndex = 200;
 
-// ====== layers ======
-let adminLayer = L.geoJSON(null, { pane:"adminPane" }).addTo(map);
+map.createPane("adminPane");
+map.getPane("adminPane").style.zIndex = 400;
 
-//   facilities dans un group pour toggle
+map.createPane("pointsPane");
+map.getPane("pointsPane").style.zIndex = 500;
+
+let adminLayer = null;
+let facilitiesLayer = null;
 const facilitiesGroup = L.layerGroup().addTo(map);
-let facilitiesLayer = L.geoJSON(null, { pane:"pointsPane" }); // pas addTo(map) ici
 
-// ====== helpers ======
+let currentRegion = null;
+let currentProvince = null;
+let currentCommune = null;
+
 function getSelectedCategory() {
   const sel = document.getElementById("categoryFilter");
   return sel && sel.value ? sel.value : null;
 }
 
-function getFacilitiesParams(extra = {}) {
-  // extra = { region, province }
-  return {
-    region: extra.region ?? null,
-    province: extra.province ?? null,
-    category: getSelectedCategory()
-  };
+function getMapBBox() {
+  const b = map.getBounds();
+  return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(",");
 }
 
-// ====== Mask Maroc (troué) ======
-fetch(`${API}/regions/maroc`)
-  .then(r => r.json())
-  .then(maroc => {
-    const worldRing = [[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]];
-    const holes = [];
+function loadMaskMaroc() {
+  fetch(`${API}/regions/maroc`)
+    .then((r) => r.json())
+    .then((maroc) => {
+      if (!maroc.geometry) {
+        console.error("GeoJSON Maroc invalide :", maroc);
+        return;
+      }
 
-    if (maroc.geometry.type === "Polygon") holes.push(maroc.geometry.coordinates[0]);
-    if (maroc.geometry.type === "MultiPolygon") maroc.geometry.coordinates.forEach(p => holes.push(p[0]));
+      const worldOuterRing = [
+        [-180, -90],
+        [180, -90],
+        [180, 90],
+        [-180, 90],
+        [-180, -90]
+      ];
 
-    const toLatLng = ring => ring.map(([lng,lat]) => [lat,lng]);
-    const maskLatLngs = [toLatLng(worldRing), ...holes.map(toLatLng)];
+      const toLatLng = (ring) => ring.map(([lng, lat]) => [lat, lng]);
 
-    L.polygon(maskLatLngs, {
-      pane:"maskPane",
-      stroke:false,
-      fillColor:"#fff",
-      fillOpacity:0.92
-    }).addTo(map);
+      const holes = [];
 
-    L.geoJSON(maroc, {
-      pane:"adminPane",
-      style:{ color:"#111", weight:2, fillOpacity:0 }
-    }).addTo(map);
-  })
-  .catch(err => console.error("mask maroc error:", err));
+      if (maroc.geometry.type === "Polygon") {
+        // extérieur du Maroc
+        holes.push(toLatLng(maroc.geometry.coordinates[0]));
+      }
 
-// ====== Load facilities with filters ======
-function loadFacilities({ region=null, province=null, category=null } = {}) {
-  facilitiesGroup.clearLayers();
-  facilitiesLayer.clearLayers();
+      if (maroc.geometry.type === "MultiPolygon") {
+        maroc.geometry.coordinates.forEach((poly) => {
+          holes.push(toLatLng(poly[0]));
+        });
+      }
 
-  const params = new URLSearchParams({ limit: "5000" });
-  if (region) params.set("region", region);
-  if (province) params.set("province", province);
-  if (category) params.set("category", category);
-
-  fetch(`${API}/facilities?` + params.toString())
-    .then(r => r.json())
-    .then(gj => {
-      facilitiesLayer = L.geoJSON(gj, {
-        pane:"pointsPane",
-        pointToLayer: (f, latlng) => L.circleMarker(latlng, { radius: 5, weight: 1 }),
-        onEachFeature: (f, layer) => {
-          const p = f.properties || {};
-          layer.bindPopup(
-            `<b>${p.title ?? ""}</b><br>` +
-            `${p.categoryname ?? ""}<br>` +
-            `${p.province_nom ?? ""}<br>` +
-            `${p.region_nom ?? ""}`
-          );
+      L.polygon(
+        [toLatLng(worldOuterRing), ...holes],
+        {
+          pane: "maskPane",
+          stroke: false,
+          fillColor: "#ffffff",
+          fillOpacity: 0.95,
+          interactive: false
         }
-      });
+      ).addTo(map);
 
-      //  ajouter seulement si checkbox active
-      const cb = document.getElementById("toggleFacilities");
-      if (!cb || cb.checked) facilitiesGroup.addLayer(facilitiesLayer);
-    })
-    .catch(err => console.error("loadFacilities error:", err));
-}
-
-// ====== Load admin layer (regions/provinces/communes) ======
-function loadAdmin(mode) {
-  adminLayer.clearLayers();
-  console.log("MODE =", mode);
-
-  fetch(`${API}/${mode}`)
-    .then(r => r.json())
-    .then(gj => {
-      adminLayer = L.geoJSON(gj, {
+      // contour du Maroc par-dessus
+      L.geoJSON(maroc, {
         pane: "adminPane",
-
-        style: () => {
-          if (mode === "regions") {
-            return { color:"#111", weight:2, fillColor:"#457b9d", fillOpacity:0.25 };
-          }
-          if (mode === "provinces") {
-            return { color:"#111", weight:1.2, fillColor:"#2a9d8f", fillOpacity:0.20 };
-          }
-          return { color:"#111", weight:0.6, fillColor:"#8d99ae", fillOpacity:0.15 }; // communes
+        style: {
+          color: "#111",
+          weight: 2,
+          fillOpacity: 0
         },
-
-        onEachFeature: (feature, layer) => {
-          const p = feature.properties || {};
-          layer.bindTooltip(p.label || "", { sticky: true });
-
-          // hover
-          layer.on("mouseover", () => layer.setStyle({ weight: 3, fillOpacity: 0.35 }));
-          layer.on("mouseout", () => adminLayer.resetStyle(layer));
-
-          layer.on("click", () => {
-            map.fitBounds(layer.getBounds());
-
-            const category = getSelectedCategory();
-
-            if (mode === "regions") {
-              loadFacilities({ region: p.region, category });
-            } else {
-              loadFacilities({ region: p.region, province: p.province, category });
-            }
-          });
-        }
+        interactive: false
       }).addTo(map);
     })
-    .catch(err => console.error("loadAdmin error:", err));
+    .catch((err) => console.error("loadMaskMaroc error:", err));
 }
 
-// ====== Load categories for dropdown ======
 function loadCategories() {
-  fetch(`${API}/facilities/categories`)
+  fetch(`${API}/etablissements/categories`)
     .then(r => r.json())
-    .then(list => {
+    .then(categories => {
       const sel = document.getElementById("categoryFilter");
       if (!sel) return;
 
       sel.innerHTML = `<option value="">Toutes les catégories</option>`;
-      list.forEach(cat => {
+
+      categories.forEach(cat => {
         const opt = document.createElement("option");
         opt.value = cat;
         opt.textContent = cat;
@@ -165,22 +121,200 @@ function loadCategories() {
     .catch(err => console.error("loadCategories error:", err));
 }
 
-// ====== UI events ======
-document.getElementById("decoupage")?.addEventListener("change", (e) => {
-  const mode = e.target.value;
-  loadAdmin(mode);
+function loadEtablissements({ region = null, province = null, commune = null, categorie = null } = {}) {
+  if (facilitiesLayer) {
+    facilitiesGroup.clearLayers();
+    facilitiesLayer = null;
+  }
 
-  //  reset points mais garde la catégorie
-  loadFacilities({ category: getSelectedCategory() });
+  const params = new URLSearchParams();
+  params.set("limit", "5000");
+  params.set("bbox", getMapBBox());
+
+  if (region) params.set("region", region);
+  if (province) params.set("province", province);
+  if (commune) params.set("commune", commune);
+  if (categorie) params.set("categorie", categorie);
+
+  fetch(`${API}/etablissements?${params.toString()}`)
+    .then(r => r.json())
+    .then(gj => {
+      facilitiesLayer = L.geoJSON(gj, {
+        pane: "pointsPane",
+        renderer: L.canvas(),
+        pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+          radius: 4,
+          weight: 1,
+          color: "#b42318",
+          fillColor: "#d92d20",
+          fillOpacity: 0.75
+        }),
+        onEachFeature: (feature, layer) => {
+          const p = feature.properties || {};
+          layer.bindPopup(`
+            <b>${p.nom || ""}</b><br>
+            Code : <b>${p.code || ""}</b><br>
+            Catégorie : ${p.categorie || ""}<br>
+            Réseau : ${p.reseau || ""}<br>
+            Milieu : ${p.milieu || ""}<br>
+            Région : ${p.code_region || ""}<br>
+            Province : ${p.code_province || ""}<br>
+            Commune : ${p.code_iso || ""}
+          `);
+        }
+      });
+
+      const cb = document.getElementById("toggleFacilities");
+      if (!cb || cb.checked) {
+        facilitiesGroup.addLayer(facilitiesLayer);
+      }
+    })
+    .catch(err => console.error("loadEtablissements error:", err));
+}
+
+function loadPharmacies({ region = null, province = null, commune = null } = {}) {
+  if (pharmaciesLayer) {
+    pharmaciesGroup.clearLayers();
+    pharmaciesLayer = null;
+  }
+
+  const params = new URLSearchParams();
+  params.set("limit", "5000");
+  params.set("bbox", getMapBBox());
+
+  if (region) params.set("region", region);
+  if (province) params.set("province", province);
+  if (commune) params.set("commune", commune);
+
+  fetch(`${API}/pharmacies?${params.toString()}`)
+    .then((r) => r.json())
+    .then((gj) => {
+      pharmaciesLayer = L.geoJSON(gj, {
+        pane: "pointsPane",
+        renderer: L.canvas(),
+        pointToLayer: (feature, latlng) =>
+          L.circleMarker(latlng, {
+            radius: 5,
+            color: "#18794e",
+            fillColor: "#22c55e",
+            fillOpacity: 0.9,
+            weight: 1
+          }),
+        onEachFeature: (feature, layer) => {
+          const p = feature.properties || {};
+
+          layer.bindPopup(`
+            <b>${p.title || ""}</b><br>
+            Catégorie : ${p.categoryname || ""}<br>
+            Ville : ${p.city || ""}<br>
+            Adresse : ${p.address || ""}<br>
+            Téléphone : ${p.phone || ""}<br>
+            Région : ${p.nom_region || ""}<br>
+            Province : ${p.nom_province || ""}<br>
+            Commune : ${p.nom_commune || ""}
+          `);
+        }
+      });
+
+      const cb = document.getElementById("togglePharmacies");
+      if (!cb || cb.checked) {
+        pharmaciesGroup.addLayer(pharmaciesLayer);
+      }
+    })
+    .catch((err) => console.error("loadPharmacies error:", err));
+}
+
+function loadAdmin(mode) {
+  if (adminLayer) {
+    map.removeLayer(adminLayer);
+  }
+
+  const params = new URLSearchParams();
+
+  if (mode === "provinces" && currentRegion) {
+    params.set("region", currentRegion);
+  }
+
+  if (mode === "communes") {
+    if (currentRegion) params.set("region", currentRegion);
+    if (currentProvince) params.set("province", currentProvince);
+  }
+
+  const url = `${API}/${mode}${params.toString() ? "?" + params.toString() : ""}`;
+
+  fetch(url)
+    .then(r => r.json())
+    .then(gj => {
+      adminLayer = L.geoJSON(gj, {
+        pane: "adminPane",
+        style: () => {
+          if (mode === "regions") {
+            return { color: "#111", weight: 2, fillColor: "#457b9d", fillOpacity: 0.25 };
+          }
+          if (mode === "provinces") {
+            return { color: "#111", weight: 1.2, fillColor: "#2a9d8f", fillOpacity: 0.20 };
+          }
+          return { color: "#111", weight: 0.8, fillColor: "#8d99ae", fillOpacity: 0.15 };
+        },
+        onEachFeature: (feature, layer) => {
+          const p = feature.properties || {};
+
+          layer.bindTooltip(p.label || p.nom || p.nom_region || "", { sticky: true });
+
+          layer.on("mouseover", () => {
+            layer.setStyle({ weight: 3, fillOpacity: 0.35 });
+          });
+
+          layer.on("mouseout", () => {
+            adminLayer.resetStyle(layer);
+          });
+
+          layer.on("click", () => {
+            map.fitBounds(layer.getBounds());
+
+            if (mode === "regions") {
+              currentRegion = p.region || p.code_region;
+              currentProvince = null;
+              currentCommune = null;
+            } else if (mode === "provinces") {
+              currentRegion = p.region || p.code_region;
+              currentProvince = p.province || p.code_province;
+              currentCommune = null;
+            } else {
+              currentRegion = p.region || p.code_region;
+              currentProvince = p.province || p.code_province;
+              currentCommune = p.commune || p.code_iso;
+            }
+
+            loadEtablissements({
+              region: currentRegion,
+              province: currentProvince,
+              commune: currentCommune,
+              categorie: getSelectedCategory()
+            });
+          });
+        }
+      }).addTo(map);
+    })
+    .catch(err => console.error("loadAdmin error:", err));
+}
+
+document.getElementById("decoupage")?.addEventListener("change", (e) => {
+  loadAdmin(e.target.value);
 });
 
 document.getElementById("reset")?.addEventListener("click", () => {
+  currentRegion = null;
+  currentProvince = null;
+  currentCommune = null;
   map.fitBounds(marocBounds);
-  loadFacilities({ category: getSelectedCategory() });
+  loadAdmin("regions");
+  loadEtablissements({ categorie: getSelectedCategory() });
+  loadPharmacies();
 });
 
 document.getElementById("toggleFacilities")?.addEventListener("change", (e) => {
-  if (e.target.checked) {
+  if (e.target.checked && facilitiesLayer) {
     facilitiesGroup.addLayer(facilitiesLayer);
   } else {
     facilitiesGroup.clearLayers();
@@ -188,11 +322,24 @@ document.getElementById("toggleFacilities")?.addEventListener("change", (e) => {
 });
 
 document.getElementById("categoryFilter")?.addEventListener("change", () => {
-  //  filtre global (sans zone), mais tu peux le garder avec dernière zone si tu veux
-  loadFacilities({ category: getSelectedCategory() });
+  loadEtablissements({
+    region: currentRegion,
+    province: currentProvince,
+    commune: currentCommune,
+    categorie: getSelectedCategory()
+  });
 });
 
-// ====== initial load ======
+document.getElementById("togglePharmacies")?.addEventListener("change", (e) => {
+  if (e.target.checked && pharmaciesLayer) {
+    pharmaciesGroup.addLayer(pharmaciesLayer);
+  } else {
+    pharmaciesGroup.clearLayers();
+  }
+});
+
+loadMaskMaroc();
 loadAdmin("regions");
 loadCategories();
-loadFacilities({ category: getSelectedCategory() });
+loadEtablissements();
+loadPharmacies();

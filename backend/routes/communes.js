@@ -4,47 +4,56 @@ const pool = require("../db");
 
 router.get("/", async (req, res) => {
   try {
-    const { rows } = await pool.query(`
+    const { region, province } = req.query;
+
+    let query = `
       SELECT
-        c."NAME_2" AS commune_nom,
-        p."Code_Provi" AS province_code,
-        p."nom" AS province_nom,
-        r."CODE_REGIO" AS region_code,
-        r."nom_region" AS region_nom,
-        ST_AsGeoJSON(c.geometry) AS geometry
-      FROM communes c
-      JOIN LATERAL (
-        SELECT p2.*
-        FROM provinces p2
-        WHERE ST_Intersects(p2.geometry, c.geometry)
-        ORDER BY ST_Area(ST_Intersection(p2.geometry, c.geometry)) DESC
-        LIMIT 1
-      ) p ON true
-      JOIN LATERAL (
-        SELECT r2.*
-        FROM regions r2
-        WHERE ST_Intersects(r2.geometry, p.geometry)
-        ORDER BY ST_Area(ST_Intersection(r2.geometry, p.geometry)) DESC
-        LIMIT 1
-      ) r ON true
-    `);
+        code_iso,
+        nom,
+        code_province,
+        code_region,
+        population_rgph_2024,
+        ST_AsGeoJSON(geometry) AS geometry
+      FROM communes
+      WHERE geometry IS NOT NULL
+    `;
+
+    const params = [];
+
+    if (region) {
+      params.push(String(region));
+      query += ` AND code_region::text = $${params.length}`;
+    }
+
+    if (province) {
+      params.push(String(province));
+      query += ` AND code_province::text = $${params.length}`;
+    }
+
+    query += ` ORDER BY nom`;
+
+    const { rows } = await pool.query(query, params);
 
     res.json({
       type: "FeatureCollection",
-      features: rows.map(r => ({
+      features: rows.map((c) => ({
         type: "Feature",
-        geometry: JSON.parse(r.geometry),
+        geometry: JSON.parse(c.geometry),
         properties: {
-          region: r.region_code,
-          province: r.province_code,
-          commune: r.commune_nom,
-          label: r.commune_nom,
-          region_nom: r.region_nom,
-          province_nom: r.province_nom
+          commune: c.code_iso,
+          code_iso: c.code_iso,
+          nom: c.nom,
+          province: c.code_province,
+          code_province: c.code_province,
+          region: c.code_region,
+          code_region: c.code_region,
+          population: c.population_rgph_2024,
+          label: c.nom
         }
       }))
     });
   } catch (err) {
+    console.error("Erreur /communes :", err);
     res.status(500).json({ error: err.message });
   }
 });
