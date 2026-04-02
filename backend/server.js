@@ -7,23 +7,24 @@ const communesRouter = require("./routes/communes");
 const etablissementsRouter = require("./routes/etablissements");
 const pharmaciesRouter = require("./routes/pharmacies");
 const medecinsRouter = require("./routes/medecins");
+const medecinsPrivesRouter = require("./routes/medecinsPrives");
 
 const app = express();
 const PORT = 3000;
 
-// ✅ middleware
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// ✅ routes API
+// Routes API
 app.use("/api/regions", regionsRouter);
 app.use("/api/provinces", provincesRouter);
 app.use("/api/communes", communesRouter);
 app.use("/api/etablissements", etablissementsRouter);
 app.use("/api/pharmacies", pharmaciesRouter);
 app.use("/api/medecins", medecinsRouter);
+app.use("/api/medecins-prives", medecinsPrivesRouter);
 
-// ✅ test route (optionnel mais utile)
 app.get("/", (req, res) => {
   res.send("API running 🚀");
 });

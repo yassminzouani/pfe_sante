@@ -16,3 +16,17 @@ body,
   height: 100%;
   font-family: Arial, sans-serif;
 }
+.medecins-private-tooltip {
+  background: rgba(29, 78, 216, 0.92);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 8px;
+  box-shadow: none;
+}
+
+.medecins-private-tooltip::before {
+  display: none;
+}

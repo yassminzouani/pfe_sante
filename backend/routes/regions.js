@@ -6,7 +6,18 @@ const pool = require("../db");
 router.get("/maroc", async (req, res) => {
   try {
     const query = `
-      SELECT ST_AsGeoJSON(ST_Union(geometry)) AS geometry
+      SELECT ST_AsGeoJSON(
+        ST_Multi(
+          ST_CollectionExtract(
+            ST_UnaryUnion(
+              ST_Collect(
+                ST_MakeValid(geometry)
+              )
+            ),
+            3
+          )
+        )
+      ) AS geometry
       FROM regions
       WHERE geometry IS NOT NULL
     `;
@@ -36,7 +47,9 @@ router.get("/", async (req, res) => {
         nom_region,
         nom_arabe,
         population_rgph_2024,
-        ST_AsGeoJSON(geometry) AS geometry
+        ST_AsGeoJSON(
+          ST_MakeValid(geometry)
+        ) AS geometry
       FROM regions
       WHERE geometry IS NOT NULL
       ORDER BY nom_region
@@ -46,18 +59,20 @@ router.get("/", async (req, res) => {
 
     res.json({
       type: "FeatureCollection",
-      features: rows.map((r) => ({
-        type: "Feature",
-        geometry: JSON.parse(r.geometry),
-        properties: {
-          region: r.code_region,
-          code_region: r.code_region,
-          nom_region: r.nom_region,
-          nom_arabe: r.nom_arabe,
-          label: r.nom_region,
-          population: r.population_rgph_2024
-        }
-      }))
+      features: rows
+        .filter((r) => r.geometry)
+        .map((r) => ({
+          type: "Feature",
+          geometry: JSON.parse(r.geometry),
+          properties: {
+            region: r.code_region,
+            code_region: r.code_region,
+            nom_region: r.nom_region,
+            nom_arabe: r.nom_arabe,
+            label: r.nom_region,
+            population: r.population_rgph_2024
+          }
+        }))
     });
   } catch (err) {
     console.error("Erreur /regions :", err);
