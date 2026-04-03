@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 
 import { fetchCategories } from "../map/api";
 import { MAROC_BOUNDS } from "../map/styles";
-import { loadAdminLayer } from "../map/adminLayer";
+import { loadAdminLayer, loadMaskMaroc } from "../map/adminLayer";
 import {
   loadEtablissementsLayer,
   syncFacilitiesVisibility,
@@ -55,6 +55,8 @@ export default function MapPage() {
   const mapContainerRef = useRef(null);
 
   const adminLayerRef = useRef(null);
+  const marocBorderRef = useRef(null);
+
   const facilitiesLayerRef = useRef(null);
   const pharmaciesLayerRef = useRef(null);
 
@@ -229,7 +231,8 @@ export default function MapPage() {
     map.fitBounds(MAROC_BOUNDS);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap"
+      attribution: "© OpenStreetMap",
+      noWrap: true
     }).addTo(map);
 
     facilitiesGroupRef.current = L.layerGroup().addTo(map);
@@ -251,7 +254,13 @@ export default function MapPage() {
 
     map.whenReady(async () => {
       try {
+        await loadMaskMaroc({
+          map,
+          marocBorderRef
+        });
+
         await loadCategoriesData();
+
         isMapReadyRef.current = true;
         await reloadData();
       } catch (err) {
@@ -273,6 +282,10 @@ export default function MapPage() {
           map.removeLayer(adminLayerRef.current);
         }
 
+        if (marocBorderRef.current && map.hasLayer(marocBorderRef.current)) {
+          map.removeLayer(marocBorderRef.current);
+        }
+
         if (facilitiesGroupRef.current && map.hasLayer(facilitiesGroupRef.current)) {
           map.removeLayer(facilitiesGroupRef.current);
         }
@@ -287,6 +300,7 @@ export default function MapPage() {
       }
 
       adminLayerRef.current = null;
+      marocBorderRef.current = null;
       facilitiesGroupRef.current = null;
       pharmaciesGroupRef.current = null;
 
@@ -327,7 +341,7 @@ export default function MapPage() {
       <div style={panelStyle}>
         <h3 style={{ marginTop: 0, marginBottom: 12 }}>Carte Santé Maroc</h3>
 
-      
+       
 
         <div style={{ marginBottom: 10 }}>
           <label htmlFor="categorie-select" style={{ display: "block", marginBottom: 6 }}>

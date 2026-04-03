@@ -157,99 +157,92 @@ router.get("/communes", async (req, res) => {
   }
 });
 
-/**
- * GET /api/medecins-prives/details
- *
- * Query params :
- * - mode = regions | provinces | communes
- * - code_region   (si mode = regions)
- * - code_province (si mode = provinces)
- * - code_iso      (si mode = communes)
- */
 router.get("/details", async (req, res) => {
   try {
     const { mode, code_region, code_province, code_iso } = req.query;
 
     if (!mode) {
-      return res.status(400).json({
-        error: "Le paramètre mode est obligatoire"
-      });
+      return res.status(400).json({ error: "mode obligatoire" });
     }
 
-    let sql = "";
+    let where = "";
     let values = [];
 
     if (mode === "regions") {
-      if (!code_region) {
-        return res.status(400).json({
-          error: "Le paramètre code_region est obligatoire pour le mode regions"
-        });
-      }
+      if (!code_region) return res.status(400).json({ error: "code_region requis" });
 
+      where = `c.code_region = $1`;
       values = [code_region];
-
-      sql = `
-        SELECT
-          COALESCE(mps.specialite, 'Non renseignée') AS specialite,
-          COALESCE(SUM(mps.nombre), 0) AS total
-        FROM communes c
-        INNER JOIN medecins_prives_stats mps
-          ON mps.code_iso = c.code_iso
-        WHERE c.code_region = $1
-        GROUP BY COALESCE(mps.specialite, 'Non renseignée')
-        ORDER BY total DESC, specialite ASC
-      `;
-    } else if (mode === "provinces") {
-      if (!code_province) {
-        return res.status(400).json({
-          error: "Le paramètre code_province est obligatoire pour le mode provinces"
-        });
-      }
-
-      values = [code_province];
-
-      sql = `
-        SELECT
-          COALESCE(mps.specialite, 'Non renseignée') AS specialite,
-          COALESCE(SUM(mps.nombre), 0) AS total
-        FROM communes c
-        INNER JOIN medecins_prives_stats mps
-          ON mps.code_iso = c.code_iso
-        WHERE c.code_province = $1
-        GROUP BY COALESCE(mps.specialite, 'Non renseignée')
-        ORDER BY total DESC, specialite ASC
-      `;
-    } else if (mode === "communes") {
-      if (!code_iso) {
-        return res.status(400).json({
-          error: "Le paramètre code_iso est obligatoire pour le mode communes"
-        });
-      }
-
-      values = [code_iso];
-
-      sql = `
-        SELECT
-          COALESCE(mps.specialite, 'Non renseignée') AS specialite,
-          COALESCE(SUM(mps.nombre), 0) AS total
-        FROM medecins_prives_stats mps
-        WHERE mps.code_iso = $1
-        GROUP BY COALESCE(mps.specialite, 'Non renseignée')
-        ORDER BY total DESC, specialite ASC
-      `;
-    } else {
-      return res.status(400).json({
-        error: "Mode invalide. Valeurs acceptées : regions, provinces, communes"
-      });
     }
 
-    const result = await db.query(sql, values);
-    res.json(result.rows);
-  } catch (error) {
-    console.error("Erreur GET /api/medecins-prives/details :", error);
-    res.status(500).json({
-      error: "Erreur serveur lors du chargement du détail des médecins privés"
+    else if (mode === "provinces") {
+      if (!code_province) return res.status(400).json({ error: "code_province requis" });
+
+      where = `c.code_province = $1`;
+      values = [code_province];
+    }
+
+    else if (mode === "communes") {
+      if (!code_iso) return res.status(400).json({ error: "code_iso requis" });
+
+      where = `mps.code_iso = $1`;
+      values = [code_iso];
+    }
+
+    else {
+      return res.status(400).json({ error: "mode invalide" });
+    }
+
+    // 🔹 total global
+    const totalSql = `
+      SELECT COALESCE(SUM(mps.nombre),0) AS total
+      FROM communes c
+      INNER JOIN medecins_prives_stats mps
+        ON mps.code_iso = c.code_iso
+      WHERE ${where}
+    `;
+
+    // 🔹 généralistes
+    const generalistesSql = `
+      SELECT COALESCE(SUM(mps.nombre),0) AS total_generalistes
+      FROM communes c
+      INNER JOIN medecins_prives_stats mps
+        ON mps.code_iso = c.code_iso
+      WHERE ${where}
+      AND (
+        LOWER(COALESCE(mps.specialite,'')) LIKE '%general%'
+        OR LOWER(COALESCE(mps.specialite,'')) LIKE '%général%'
+      )
+    `;
+
+    // 🔹 spécialités (ton code)
+    const specialitesSql = `
+      SELECT
+        COALESCE(mps.specialite, 'Non renseignée') AS specialite,
+        COALESCE(SUM(mps.nombre), 0) AS total
+      FROM communes c
+      INNER JOIN medecins_prives_stats mps
+        ON mps.code_iso = c.code_iso
+      WHERE ${where}
+      GROUP BY COALESCE(mps.specialite, 'Non renseignée')
+      ORDER BY total DESC
+    `;
+
+    const [totalRes, genRes, specRes] = await Promise.all([
+      db.query(totalSql, values),
+      db.query(generalistesSql, values),
+      db.query(specialitesSql, values)
+    ]);
+
+    res.json({
+      total: Number(totalRes.rows[0]?.total || 0),
+      generalistes: Number(genRes.rows[0]?.total_generalistes || 0),
+      specialites: specRes.rows
     });
+
+  } catch (error) {
+    console.error("Erreur details:", error);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 

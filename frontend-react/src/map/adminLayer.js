@@ -39,8 +39,87 @@ function removeLayerIfExists(map, layerRef) {
   }
 }
 
-export async function loadMaskMaroc() {
-  return null;
+function lngLatToLatLngRing(ring = []) {
+  return ring.map(([lng, lat]) => [lat, lng]);
+}
+
+function buildMaskCoordinates(geometry) {
+  if (!geometry) return [];
+
+  if (geometry.type === "Polygon") {
+    return geometry.coordinates.map(lngLatToLatLngRing);
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    const holes = [];
+
+    geometry.coordinates.forEach((polygon) => {
+      polygon.forEach((ring) => {
+        holes.push(lngLatToLatLngRing(ring));
+      });
+    });
+
+    return holes;
+  }
+
+  return [];
+}
+
+export async function loadMaskMaroc({ map, marocBorderRef }) {
+  try {
+    if (!map) return;
+
+    removeLayerIfExists(map, marocBorderRef);
+
+    const response = await fetch(`${API_BASE}/regions/maroc`);
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP ${response.status} sur ${API_BASE}/regions/maroc`);
+    }
+
+    const marocFeature = await response.json();
+    const geometry = marocFeature?.geometry;
+
+    const marocHoles = buildMaskCoordinates(geometry);
+
+    if (!marocHoles.length) {
+      throw new Error("Géométrie du Maroc invalide pour le masque");
+    }
+
+    const outerRing = [
+      [90, -180],
+      [90, 180],
+      [-90, 180],
+      [-90, -180],
+      [90, -180]
+    ];
+
+    const maskLayer = L.polygon(
+      [outerRing, ...marocHoles],
+      {
+        stroke: false,
+        fillColor: "#f3f4f6",
+        fillOpacity: 0.72,
+        interactive: false
+      }
+    );
+
+    const borderLayer = L.geoJSON(marocFeature, {
+      interactive: false,
+      style: {
+        color: "#111827",
+        weight: 2.2,
+        fill: false,
+        opacity: 1
+      }
+    });
+
+    const group = L.layerGroup([maskLayer, borderLayer]);
+    group.addTo(map);
+
+    marocBorderRef.current = group;
+  } catch (error) {
+    console.error("loadMaskMaroc error:", error);
+  }
 }
 
 export async function loadAdminLayer({
@@ -98,6 +177,10 @@ export async function loadAdminLayer({
               weight: baseStyle.weight + 1,
               fillOpacity: 0.3
             });
+
+            if (typeof e.target.bringToFront === "function") {
+              e.target.bringToFront();
+            }
           },
           mouseout: (e) => {
             if (geoJsonLayer) {

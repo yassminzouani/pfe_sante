@@ -36,22 +36,34 @@ function getStatsUrl({ mode, codeRegion, codeProvince }) {
 
   if (mode === "regions") {
     if (codeRegion) params.set("code_region", codeRegion);
-    const qs = params.toString();
-    return `http://localhost:3000/api/medecins-prives/regions${qs ? `?${qs}` : ""}`;
+    return `http://localhost:3000/api/medecins-prives/regions?${params}`;
   }
 
   if (mode === "provinces") {
     if (codeRegion) params.set("code_region", codeRegion);
     if (codeProvince) params.set("code_province", codeProvince);
-    const qs = params.toString();
-    return `http://localhost:3000/api/medecins-prives/provinces${qs ? `?${qs}` : ""}`;
+    return `http://localhost:3000/api/medecins-prives/provinces?${params}`;
   }
 
   if (codeRegion) params.set("code_region", codeRegion);
   if (codeProvince) params.set("code_province", codeProvince);
 
-  const qs = params.toString();
-  return `http://localhost:3000/api/medecins-prives/communes${qs ? `?${qs}` : ""}`;
+  return `http://localhost:3000/api/medecins-prives/communes?${params}`;
+}
+
+function getDetailsUrl({ mode, code }) {
+  const params = new URLSearchParams();
+  params.set("mode", mode);
+
+  if (mode === "regions") {
+    params.set("code_region", code);
+  } else if (mode === "provinces") {
+    params.set("code_province", code);
+  } else {
+    params.set("code_iso", code);
+  }
+
+  return `http://localhost:3000/api/medecins-prives/details?${params}`;
 }
 
 function getStatCode(item, mode) {
@@ -60,46 +72,30 @@ function getStatCode(item, mode) {
   return String(item?.code_iso || "");
 }
 
-function getFillOpacity(total, enabled) {
-  if (!enabled) return 0;
-  if (total >= 200) return 0.45;
-  if (total >= 100) return 0.35;
-  if (total >= 50) return 0.25;
-  if (total > 0) return 0.15;
-  return 0.05;
-}
-
-function getFillColor(total) {
-  if (total >= 200) return "#1d4ed8";
-  if (total >= 100) return "#2563eb";
-  if (total >= 50) return "#60a5fa";
-  if (total > 0) return "#bfdbfe";
-  return "#e5e7eb";
-}
-
 function makeCountIcon(total) {
   return L.divIcon({
     className: "",
     html: `
       <div style="
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         background: #f59e0b;
         border: 2px solid white;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        font-size: 13px;
+        font-size: 14px;
         color: white;
+        cursor: pointer;
       ">
         ${total}
       </div>
     `,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17]
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
   });
 }
 
@@ -111,23 +107,6 @@ function clearMarkers(map) {
 }
 
 export function clearMedecinsPrivesLayer(adminLayerRef, map = null) {
-  const adminLayer = adminLayerRef?.current;
-
-  if (adminLayer && typeof adminLayer.eachLayer === "function") {
-    adminLayer.eachLayer((layer) => {
-      try {
-        if (typeof layer.setStyle === "function") {
-          layer.setStyle({
-            fillColor: undefined,
-            fillOpacity: 0
-          });
-        }
-      } catch (err) {
-        console.warn("clearMedecinsPrivesLayer warning:", err);
-      }
-    });
-  }
-
   clearMarkers(map);
 }
 
@@ -179,33 +158,45 @@ export async function loadMedecinsPrivesLayer({
       const name = getNameFromFeature(feature, mode);
       const total = totalsByCode.get(code) || 0;
 
-      if (typeof layer.setStyle === "function") {
-        layer.setStyle({
-          fillColor: getFillColor(total),
-          fillOpacity: getFillOpacity(total, toggleMedecinsPrives)
-        });
-      }
-
-      layer.bindPopup(
-        `
-          <div style="min-width:220px">
-            <div><b>${name}</b></div>
-            <div><b>Total médecins privés :</b> ${total}</div>
-          </div>
-        `,
-        { maxWidth: 320 }
-      );
-
-      layer.on("click", () => {
-        layer.openPopup();
-      });
-
       if (total > 0) {
         const center = layer.getBounds().getCenter();
 
         const marker = L.marker(center, {
           icon: makeCountIcon(total),
-          interactive: false
+          interactive: true
+        });
+
+        // 🔥 CLICK → DETAILS
+        marker.on("click", async () => {
+          try {
+            const detailsUrl = getDetailsUrl({ mode, code });
+            const details = await fetchJson(detailsUrl);
+
+            const html = `
+              <div style="min-width:260px">
+                <div><b>${name}</b></div>
+                <div><b>Total :</b> ${details.total}</div>
+                <div><b>Généralistes :</b> ${details.generalistes}</div>
+
+                <div style="margin-top:8px"><b>Spécialités :</b></div>
+                <ul style="margin:6px 0 0 16px">
+                  ${
+                    details.specialites?.length
+                      ? details.specialites
+                          .slice(0, 8)
+                          .map(s => `<li>${s.specialite} : ${s.total}</li>`)
+                          .join("")
+                      : "<li>Aucune donnée</li>"
+                  }
+                </ul>
+              </div>
+            `;
+
+            marker.bindPopup(html).openPopup();
+
+          } catch (err) {
+            console.error("Erreur details:", err);
+          }
         });
 
         medecinsCountLayer.addLayer(marker);
@@ -217,6 +208,7 @@ export async function loadMedecinsPrivesLayer({
     }
 
     return { totalGlobal };
+
   } catch (err) {
     console.error("Erreur loadMedecinsPrivesLayer:", err);
     return { totalGlobal: 0 };
