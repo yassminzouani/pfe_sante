@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useNavigate } from "react-router-dom";
+import { logoutUser } from "../services/authService";
 
 import { fetchCategories } from "../map/api";
 import { MAROC_BOUNDS } from "../map/styles";
@@ -51,6 +53,13 @@ const buttonStyle = {
 };
 
 export default function MapPage() {
+  const navigate = useNavigate();
+
+const handleLogout = () => {
+  logoutUser();
+  navigate("/login");
+};
+
   const mapRef = useRef(null);
   const mapContainerRef = useRef(null);
 
@@ -404,7 +413,16 @@ export default function MapPage() {
           />
           Médecins privés
         </label>
-
+<button
+  onClick={handleLogout}
+  style={{
+    ...buttonStyle,
+    marginTop: 10,
+    background: "#b91c1c"
+  }}
+>
+  Déconnexion
+</button> 
         <button onClick={resetMap} style={buttonStyle}>
           Reset
         </button>
