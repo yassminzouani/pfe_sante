@@ -28,7 +28,6 @@ export function logoutUser() {
   localStorage.removeItem("user");
 }
 
-// ✅ AJOUT ICI
 export function isAuthenticated() {
   return !!localStorage.getItem("token");
 }

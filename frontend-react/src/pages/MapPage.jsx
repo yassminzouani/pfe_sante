@@ -21,44 +21,231 @@ import {
   clearMedecinsPrivesLayer
 } from "../map/medecinsPrivesLayer";
 
-const panelStyle = {
-  position: "absolute",
-  top: 16,
-  left: 16,
-  zIndex: 1000,
-  width: 360,
-  background: "#ffffff",
-  borderRadius: 14,
-  padding: 16,
-  boxShadow: "0 6px 20px rgba(0,0,0,0.15)"
-};
+const styles = {
+  page: {
+    width: "100%",
+    height: "100vh",
+    position: "relative",
+    background: "#f4f7fb"
+  },
 
-const selectStyle = {
-  width: "100%",
-  padding: 8,
-  borderRadius: 8,
-  border: "1px solid #d1d5db",
-  outline: "none"
-};
+  panel: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 1000,
+    width: 380,
+    maxHeight: "calc(100vh - 40px)",
+    overflowY: "auto",
+    background: "rgba(255, 255, 255, 0.96)",
+    backdropFilter: "blur(10px)",
+    border: "1px solid rgba(15, 23, 42, 0.08)",
+    borderRadius: 20,
+    padding: 18,
+    boxShadow: "0 20px 45px rgba(15, 23, 42, 0.16)"
+  },
 
-const buttonStyle = {
-  width: "100%",
-  padding: 10,
-  border: "none",
-  borderRadius: 8,
-  background: "#111827",
-  color: "#fff",
-  cursor: "pointer",
-  fontWeight: 600
+  header: {
+    marginBottom: 18
+  },
+
+  badge: {
+    display: "inline-block",
+    padding: "5px 10px",
+    borderRadius: 999,
+    background: "#e0f2fe",
+    color: "#0369a1",
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 10,
+    letterSpacing: 0.3
+  },
+
+  title: {
+    margin: 0,
+    fontSize: 24,
+    fontWeight: 800,
+    color: "#0f172a"
+  },
+
+  subtitle: {
+    marginTop: 6,
+    marginBottom: 0,
+    fontSize: 14,
+    lineHeight: 1.5,
+    color: "#475569"
+  },
+
+  section: {
+    marginBottom: 14,
+    padding: 14,
+    borderRadius: 16,
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0"
+  },
+
+  sectionTitle: {
+    margin: "0 0 12px 0",
+    fontSize: 14,
+    fontWeight: 800,
+    color: "#0f172a",
+    textTransform: "uppercase",
+    letterSpacing: 0.4
+  },
+
+  label: {
+    display: "block",
+    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#334155"
+  },
+
+  select: {
+    width: "100%",
+    padding: "11px 12px",
+    borderRadius: 12,
+    border: "1px solid #cbd5e1",
+    outline: "none",
+    fontSize: 14,
+    background: "#fff",
+    color: "#0f172a"
+  },
+
+  toggleCard: {
+    padding: 12,
+    borderRadius: 14,
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    marginBottom: 10
+  },
+
+  toggleHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 10
+  },
+
+  toggleLabelWrap: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    cursor: "pointer"
+  },
+
+  toggleTextWrap: {
+    display: "flex",
+    flexDirection: "column"
+  },
+
+  toggleTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: "#0f172a",
+    lineHeight: 1.2
+  },
+
+  toggleSubtext: {
+    fontSize: 12,
+    color: "#64748b",
+    marginTop: 2
+  },
+
+  checkbox: {
+    width: 16,
+    height: 16,
+    accentColor: "#0f766e",
+    cursor: "pointer"
+  },
+
+  statBox: {
+    marginTop: 10,
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "#ecfeff",
+    border: "1px solid #bae6fd",
+    color: "#155e75",
+    fontSize: 13,
+    fontWeight: 700
+  },
+
+  actionsSection: {
+    marginTop: 4
+  },
+
+  actionsGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10
+  },
+
+  primaryButton: {
+    width: "100%",
+    padding: "12px 14px",
+    border: "none",
+    borderRadius: 12,
+    background: "linear-gradient(135deg, #0f766e, #0f172a)",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: 14,
+    boxShadow: "0 10px 24px rgba(15, 23, 42, 0.18)"
+  },
+
+  secondaryButton: {
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 12,
+    border: "1px solid #cbd5e1",
+    background: "#ffffff",
+    color: "#0f172a",
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: 14
+  },
+
+  dangerButton: {
+    width: "100%",
+    padding: "12px 14px",
+    border: "none",
+    borderRadius: 12,
+    background: "#b91c1c",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: 14,
+    boxShadow: "0 10px 24px rgba(127, 29, 29, 0.18)"
+  },
+
+  loading: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    zIndex: 1000,
+    background: "rgba(15, 23, 42, 0.95)",
+    color: "#fff",
+    padding: "12px 16px",
+    borderRadius: 14,
+    fontSize: 14,
+    fontWeight: 700,
+    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.25)"
+  },
+
+  map: {
+    width: "100%",
+    height: "100%"
+  }
 };
 
 export default function MapPage() {
   const navigate = useNavigate();
 
-const handleLogout = () => {
-  logoutUser();
-  navigate("/login");
-};
+  const handleLogout = () => {
+    logoutUser();
+    navigate("/login");
+  };
 
   const mapRef = useRef(null);
   const mapContainerRef = useRef(null);
@@ -346,106 +533,140 @@ const handleLogout = () => {
   }, [decoupage, toggleMedecinsPrives, loadMedecinsPrives]);
 
   return (
-    <div style={{ width: "100%", height: "100vh", position: "relative" }}>
-      <div style={panelStyle}>
-        <h3 style={{ marginTop: 0, marginBottom: 12 }}>Carte Santé Maroc</h3>
-
-       
-
-        <div style={{ marginBottom: 10 }}>
-          <label htmlFor="categorie-select" style={{ display: "block", marginBottom: 6 }}>
-            Catégorie
-          </label>
-          <select
-            id="categorie-select"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            style={selectStyle}
-          >
-            <option value="">Toutes les catégories</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+    <div style={styles.page}>
+      <div style={styles.panel}>
+        <div style={styles.header}>
+          <span style={styles.badge}>Mediot AI · Cartographie</span>
+          <h3 style={styles.title}>Carte Santé Maroc</h3>
+          
         </div>
 
-        <div style={{ marginBottom: 10 }}>
-          <label htmlFor="decoupage-select" style={{ display: "block", marginBottom: 6 }}>
-            Découpage
-          </label>
-          <select
-            id="decoupage-select"
-            value={decoupage}
-            onChange={(e) => setDecoupage(e.target.value)}
-            style={selectStyle}
-          >
-            <option value="regions">Régions</option>
-            <option value="provinces">Provinces / Préfectures</option>
-            <option value="communes">Communes</option>
-          </select>
+        <div style={styles.section}>
+          <h4 style={styles.sectionTitle}>Paramètres cartographiques</h4>
+
+          <div style={{ marginBottom: 0 }}>
+            <label htmlFor="decoupage-select" style={styles.label}>
+              Découpage administratif
+            </label>
+            <select
+              id="decoupage-select"
+              value={decoupage}
+              onChange={(e) => setDecoupage(e.target.value)}
+              style={styles.select}
+            >
+              <option value="regions">Régions</option>
+              <option value="provinces">Provinces / Préfectures</option>
+              <option value="communes">Communes</option>
+            </select>
+          </div>
         </div>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <input
-            type="checkbox"
-            checked={toggleFacilities}
-            onChange={(e) => setToggleFacilities(e.target.checked)}
-          />
-          Établissements
-        </label>
+        <div style={styles.section}>
+          <h4 style={styles.sectionTitle}>Couches de données</h4>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <input
-            type="checkbox"
-            checked={togglePharmacies}
-            onChange={(e) => setTogglePharmacies(e.target.checked)}
-          />
-          Pharmacies
-        </label>
+          <div style={styles.toggleCard}>
+            <div style={styles.toggleHeader}>
+              <label style={styles.toggleLabelWrap}>
+                <input
+                  type="checkbox"
+                  checked={toggleFacilities}
+                  onChange={(e) => setToggleFacilities(e.target.checked)}
+                  style={styles.checkbox}
+                />
+                <div style={styles.toggleTextWrap}>
+                  <span style={styles.toggleTitle}>Établissements</span>
+                  <span style={styles.toggleSubtext}>
+                    Affichage des structures de santé
+                  </span>
+                </div>
+              </label>
+            </div>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <input
-            type="checkbox"
-            checked={toggleMedecinsPrives}
-            onChange={(e) => setToggleMedecinsPrives(e.target.checked)}
-          />
-          Médecins privés
-        </label>
-<button
-  onClick={handleLogout}
-  style={{
-    ...buttonStyle,
-    marginTop: 10,
-    background: "#b91c1c"
-  }}
->
-  Déconnexion
-</button> 
-        <button onClick={resetMap} style={buttonStyle}>
-          Reset
-        </button>
+            <div>
+              <label htmlFor="categorie-select" style={styles.label}>
+                Catégorie des établissements
+              </label>
+              <select
+                id="categorie-select"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                style={styles.select}
+              >
+                <option value="">Toutes les catégories</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={styles.toggleCard}>
+            <label style={styles.toggleLabelWrap}>
+              <input
+                type="checkbox"
+                checked={togglePharmacies}
+                onChange={(e) => setTogglePharmacies(e.target.checked)}
+                style={styles.checkbox}
+              />
+              <div style={styles.toggleTextWrap}>
+                <span style={styles.toggleTitle}>Pharmacies</span>
+                <span style={styles.toggleSubtext}>
+                  Réseau officinal visible sur la carte
+                </span>
+              </div>
+            </label>
+          </div>
+
+          <div style={styles.toggleCard}>
+            <label style={styles.toggleLabelWrap}>
+              <input
+                type="checkbox"
+                checked={toggleMedecinsPrives}
+                onChange={(e) => setToggleMedecinsPrives(e.target.checked)}
+                style={styles.checkbox}
+              />
+              <div style={styles.toggleTextWrap}>
+                <span style={styles.toggleTitle}>Médecins privés</span>
+                <span style={styles.toggleSubtext}>
+                  Distribution par zone administrative
+                </span>
+              </div>
+            </label>
+
+            {toggleMedecinsPrives && (
+              <div style={styles.statBox}>
+                Total médecins privés : {totalMedecinsPrives}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={styles.section}>
+          <h4 style={styles.sectionTitle}>Actions</h4>
+
+          <div style={styles.actionsSection}>
+            <div style={styles.actionsGrid}>
+              <button onClick={resetMap} style={styles.secondaryButton}>
+                Réinitialiser
+              </button>
+
+              <button onClick={handleLogout} style={styles.dangerButton}>
+                Déconnexion
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {loading && (
-        <div
-          style={{
-            position: "absolute",
-            top: 16,
-            right: 16,
-            zIndex: 1000,
-            background: "#111827",
-            color: "#fff",
-            padding: "10px 14px",
-            borderRadius: 10
-          }}
-        >
-          Chargement...
+        <div style={styles.loading}>
+          Chargement des données...
         </div>
       )}
 
-      <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
+      <div ref={mapContainerRef} style={styles.map} />
     </div>
   );
 }

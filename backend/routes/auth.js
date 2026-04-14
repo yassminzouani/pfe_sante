@@ -5,9 +5,8 @@ const pool = require("../db");
 
 const router = express.Router();
 
-const JWT_SECRET = "code_secret123456"; // ⚠️ remplace par .env plus tard
+const JWT_SECRET = "code_secret123456"; 
 
-// 🔐 LOGIN
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;

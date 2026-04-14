@@ -5,13 +5,16 @@ import { loginUser, saveAuth } from "../services/authService";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setInfoMessage("");
     setLoading(true);
 
     try {
@@ -23,6 +26,13 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    setError("");
+    setInfoMessage(
+      "Veuillez contacter l’administrateur MEDIOT pour réinitialiser votre mot de passe."
+    );
   };
 
   return (
@@ -96,34 +106,62 @@ export default function LoginPage() {
               <input
                 id="email"
                 type="email"
-                placeholder="exemple@mediot.ma"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 style={styles.input}
+                placeholder="exemple@mediot.ma"
               />
             </div>
 
             <div style={styles.field}>
-              <label htmlFor="password" style={styles.label}>
-                Mot de passe
-              </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={styles.input}
-              />
+              <div style={styles.passwordHeader}>
+                <label htmlFor="password" style={styles.label}>
+                  Mot de passe
+                </label>
+
+               
+              </div>
+
+              <div style={styles.passwordWrapper}>
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  style={styles.passwordInput}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  style={styles.togglePasswordButton}
+                  aria-label={
+                    showPassword
+                      ? "Masquer le mot de passe"
+                      : "Afficher le mot de passe"
+                  }
+                >
+                  {showPassword ? "Masquer" : "Afficher"}
+                </button>
+              </div>
             </div>
 
             {error && <div style={styles.errorBox}>{error}</div>}
+            {infoMessage && <div style={styles.infoBox}>{infoMessage}</div>}
 
             <button type="submit" style={styles.button} disabled={loading}>
               {loading ? "Connexion..." : "Se connecter"}
             </button>
+             <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  style={styles.forgotPassword}
+                >
+                  Mot de passe oublié ?
+                </button>
           </form>
 
           <div style={styles.footerNote}>
@@ -304,6 +342,26 @@ const styles = {
     fontWeight: 600,
     color: "#334155",
   },
+  passwordHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+  },
+  forgotPassword: {
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    color: "#2563eb",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  passwordWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
   input: {
     height: "48px",
     borderRadius: "12px",
@@ -313,6 +371,27 @@ const styles = {
     outline: "none",
     background: "#fff",
     transition: "all 0.2s ease",
+  },
+  passwordInput: {
+    width: "100%",
+    height: "48px",
+    borderRadius: "12px",
+    border: "1px solid #dbe2ea",
+    padding: "0 95px 0 14px",
+    fontSize: "15px",
+    outline: "none",
+    background: "#fff",
+    transition: "all 0.2s ease",
+  },
+  togglePasswordButton: {
+    position: "absolute",
+    right: "12px",
+    background: "transparent",
+    border: "none",
+    color: "#0f172a",
+    fontSize: "13px",
+    fontWeight: 700,
+    cursor: "pointer",
   },
   button: {
     marginTop: "6px",
@@ -333,6 +412,14 @@ const styles = {
     color: "#b91c1c",
     fontSize: "14px",
     border: "1px solid #fecaca",
+  },
+  infoBox: {
+    padding: "12px 14px",
+    borderRadius: "12px",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    fontSize: "14px",
+    border: "1px solid #bfdbfe",
   },
   footerNote: {
     marginTop: "22px",
