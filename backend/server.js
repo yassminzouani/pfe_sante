@@ -10,6 +10,7 @@ const etablissementsRouter = require("./routes/etablissements");
 const pharmaciesRouter = require("./routes/pharmacies");
 const medecinsRouter = require("./routes/medecins");
 const medecinsPrivesRouter = require("./routes/medecinsPrives");
+const densiteMedicalRegionRoutes = require("./routes/densite_medical_region");
 
 // 🔐 Auth
 const authRouter = require("./routes/auth");
@@ -21,7 +22,7 @@ const PORT = 3000;
 app.use(helmet());
 
 app.use(cors({
-  origin: "http://localhost:5173", // ton frontend React
+  origin: "http://localhost:5173",
 }));
 
 app.use(express.json());
@@ -44,6 +45,7 @@ app.use("/api/etablissements", etablissementsRouter);
 app.use("/api/pharmacies", pharmaciesRouter);
 app.use("/api/medecins", medecinsRouter);
 app.use("/api/medecins-prives", medecinsPrivesRouter);
+app.use("/api/densite-medical-region", densiteMedicalRegionRoutes);
 
 app.get("/", (req, res) => {
   res.send("API running 🚀");

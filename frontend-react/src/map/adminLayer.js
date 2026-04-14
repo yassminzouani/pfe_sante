@@ -1,4 +1,5 @@
 import L from "leaflet";
+import { fetchRegionMedicalDensity } from "./api";
 
 const API_BASE = "http://localhost:3000/api";
 
@@ -27,6 +28,15 @@ function getAdminStyle(mode) {
     fillColor: "#fdba74",
     fillOpacity: 0.15
   };
+}
+
+function getDensityColor(value) {
+  if (value == null) return "#d1d5db";
+  if (value < 2) return "#dc2626";
+  if (value < 4) return "#f97316";
+  if (value < 6) return "#facc15";
+  if (value < 8) return "#84cc16";
+  return "#16a34a";
 }
 
 function getFeatureName(props = {}) {
@@ -156,11 +166,39 @@ export async function loadAdminLayer({
     const geojson = await response.json();
     const baseStyle = getAdminStyle(mode);
 
+    let densityMap = {};
+
+    if (mode === "regions") {
+      const densityData = await fetchRegionMedicalDensity();
+
+      densityData.forEach((item) => {
+        densityMap[String(item.code_region)] = item;
+      });
+    }
+
     let geoJsonLayer;
 
     geoJsonLayer = L.geoJSON(geojson, {
       interactive: true,
-      style: () => baseStyle,
+
+      style: (feature) => {
+        if (mode === "regions") {
+          const props = feature?.properties || {};
+          const codeRegion = String(props.code_region ?? "");
+          const stats = densityMap[codeRegion];
+          const densite = stats?.densite_medecins_totale;
+
+          return {
+            color: "#2563eb",
+            weight: 2,
+            fillColor: getDensityColor(densite),
+            fillOpacity: 0.55
+          };
+        }
+
+        return baseStyle;
+      },
+
       onEachFeature: (feature, featureLayer) => {
         const props = feature?.properties || {};
         const name = getFeatureName(props);
@@ -171,11 +209,27 @@ export async function loadAdminLayer({
           opacity: 0.95
         });
 
+        if (mode === "regions") {
+          const codeRegion = String(props.code_region ?? "");
+          const stats = densityMap[codeRegion];
+
+          featureLayer.bindPopup(`
+            <div style="font-family: Arial, sans-serif; line-height: 1.5; min-width: 220px;">
+              <strong>${name}</strong><br/>
+              Population : ${stats?.population_rgph_2024 ?? "N/A"}<br/>
+              Médecins publics : ${stats?.nb_medecins_publics ?? 0}<br/>
+              Médecins privés : ${stats?.nb_medecins_prives ?? 0}<br/>
+              <strong>Total médecins : ${stats?.nb_medecins_total ?? 0}</strong><br/>
+              Densité : <strong>${stats?.densite_medecins_totale ?? "N/A"}</strong> / 10 000 hab.
+            </div>
+          `);
+        }
+
         featureLayer.on({
           mouseover: (e) => {
             e.target.setStyle({
               weight: baseStyle.weight + 1,
-              fillOpacity: 0.3
+              fillOpacity: mode === "regions" ? 0.75 : 0.3
             });
 
             if (typeof e.target.bringToFront === "function") {

@@ -8,6 +8,10 @@ export async function fetchJson(url) {
   return response.json();
 }
 
+export function fetchRegionMedicalDensity() {
+  return fetchJson(`${API}/densite-medical-region`);
+}
+
 export function fetchMaroc() {
   return fetchJson(`${API}/regions/maroc`);
 }
