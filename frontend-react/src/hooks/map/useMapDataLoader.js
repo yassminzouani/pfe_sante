@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { loadAdminLayer } from "../../map/adminLayer";
 import { loadEtablissementsLayer } from "../../map/etablissementsLayer";
 import { loadPharmaciesLayer } from "../../map/pharmaciesLayer";
+import { loadCabinetsLayer } from "../../map/cabinetsLayer";
 import {
   loadMedecinsPrivesLayer,
   clearMedecinsPrivesLayer
@@ -15,11 +16,14 @@ export function useMapDataLoader({
   toggleFacilities,
   togglePharmacies,
   toggleMedecinsPrives,
+  toggleCabinets,
   adminLayerRef,
   facilitiesLayerRef,
   facilitiesGroupRef,
   pharmaciesLayerRef,
   pharmaciesGroupRef,
+  cabinetsLayerRef,
+  cabinetsGroupRef,
   isMapReadyRef,
   isReloadingRef,
   isMountedRef,
@@ -83,6 +87,29 @@ export function useMapDataLoader({
     togglePharmacies
   ]);
 
+  const loadCabinets = useCallback(async () => {
+    const map = getMap();
+    const bbox = getMapBBox();
+
+    if (!map || !bbox) return;
+
+    await loadCabinetsLayer({
+      map,
+      bbox,
+      ville: null,
+      nom: null,
+      cabinetsLayerRef,
+      cabinetsGroupRef,
+      toggleCabinets
+    });
+  }, [
+    getMap,
+    getMapBBox,
+    cabinetsLayerRef,
+    cabinetsGroupRef,
+    toggleCabinets
+  ]);
+
   const loadMedecinsPrives = useCallback(async () => {
     const map = getMap();
 
@@ -128,7 +155,8 @@ export function useMapDataLoader({
 
       await Promise.all([
         loadEtablissements(),
-        loadPharmacies()
+        loadPharmacies(),
+        loadCabinets()
       ]);
 
       if (adminLayerRef.current) {
@@ -152,6 +180,7 @@ export function useMapDataLoader({
     loadAdmin,
     loadEtablissements,
     loadPharmacies,
+    loadCabinets,
     loadMedecinsPrives,
     adminLayerRef
   ]);
@@ -160,6 +189,7 @@ export function useMapDataLoader({
     loadAdmin,
     loadEtablissements,
     loadPharmacies,
+    loadCabinets,
     loadMedecinsPrives,
     reloadData
   };

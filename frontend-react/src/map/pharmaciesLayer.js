@@ -54,7 +54,31 @@ export async function loadPharmaciesLayer({
     pointToLayer: (_, latlng) => createPharmacyMarker(latlng),
     onEachFeature: (feature, leafletLayer) => {
       const p = feature.properties || {};
-      leafletLayer.bindPopup(buildPharmacyPopup(p));
+
+      leafletLayer.bindPopup(
+        buildPharmacyPopup({
+          id: p.id,
+          title: p.title,
+          categorie: p.categorie,
+          ville_normalisee: p.ville_normalisee,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          maps_url: p.maps_url,
+
+          commune_id: p.commune_id,
+          province_id: p.province_id,
+          region_id: p.region_id,
+
+          code_region: p.code_region,
+          nom_region: p.nom_region,
+
+          code_province: p.code_province,
+          nom_province: p.nom_province,
+
+          code_iso: p.code_iso,
+          nom_commune: p.nom_commune
+        })
+      );
     }
   };
 

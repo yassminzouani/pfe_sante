@@ -12,6 +12,14 @@ export function fetchRegionMedicalDensity() {
   return fetchJson(`${API}/densite-medical-region`);
 }
 
+export function fetchProvinceMedicalDensity() {
+  return fetchJson(`${API}/densite-medical-province`);
+}
+
+export function fetchCommuneMedicalDensity() {
+  return fetchJson(`${API}/densite-medical-commune`);
+}
+
 export function fetchMaroc() {
   return fetchJson(`${API}/regions/maroc`);
 }
@@ -79,4 +87,16 @@ export function fetchMedecinsPrivesDetailsByCommune(codeIso) {
   return fetchJson(
     `${API}/medecins-prives?code_iso=${encodeURIComponent(codeIso)}`
   );
+}
+
+export function fetchCabinets(params = {}) {
+  const search = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== "") {
+      search.set(key, value);
+    }
+  });
+
+  return fetchJson(`${API}/cabinets?${search.toString()}`);
 }

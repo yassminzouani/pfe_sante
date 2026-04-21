@@ -12,8 +12,9 @@ router.get("/categories", async (req, res) => {
         AND TRIM(categorie) <> ''
       ORDER BY categorie
     `;
+
     const { rows } = await pool.query(query);
-    res.json(rows.map(r => r.categorie));
+    res.json(rows.map((r) => r.categorie));
   } catch (err) {
     console.error("Erreur /etablissements/categories :", err);
     res.status(500).json({ error: err.message });
@@ -28,7 +29,6 @@ router.get("/", async (req, res) => {
       province,
       commune,
       categorie,
-      reseau,
       milieu,
       limit,
       bbox
@@ -36,14 +36,20 @@ router.get("/", async (req, res) => {
 
     let query = `
       SELECT
+        id,
         code,
         nom,
+        abreviation_categorie,
         categorie,
-        reseau,
+        id_categorie,
         milieu,
+        longitude,
+        latitude,
         code_region,
         code_province,
         code_iso,
+        delegation,
+        cs,
         ST_AsGeoJSON(geometry) AS geometry
       FROM etablissements
       WHERE geometry IS NOT NULL
@@ -52,18 +58,18 @@ router.get("/", async (req, res) => {
     const params = [];
 
     if (region) {
-      params.push(region);
-      query += ` AND code_region = $${params.length}`;
+      params.push(String(region));
+      query += ` AND code_region::text = $${params.length}`;
     }
 
     if (province) {
-      params.push(province);
-      query += ` AND code_province = $${params.length}`;
+      params.push(String(province));
+      query += ` AND code_province::text = $${params.length}`;
     }
 
     if (commune) {
-      params.push(commune);
-      query += ` AND code_iso = $${params.length}`;
+      params.push(String(commune));
+      query += ` AND code_iso::text = $${params.length}`;
     }
 
     if (categorie) {
@@ -71,20 +77,15 @@ router.get("/", async (req, res) => {
       query += ` AND categorie ILIKE $${params.length}`;
     }
 
-    if (reseau) {
-      params.push(`%${reseau}%`);
-      query += ` AND reseau ILIKE $${params.length}`;
-    }
-
     if (milieu) {
       params.push(`%${milieu}%`);
       query += ` AND milieu ILIKE $${params.length}`;
     }
 
-    // bbox = west,south,east,north
     if (bbox) {
       const parts = bbox.split(",").map(Number);
-      if (parts.length === 4 && parts.every(n => !Number.isNaN(n))) {
+
+      if (parts.length === 4 && parts.every((n) => !Number.isNaN(n))) {
         const [west, south, east, north] = parts;
         params.push(west, south, east, north);
 
@@ -112,16 +113,22 @@ router.get("/", async (req, res) => {
       type: "FeatureCollection",
       features: rows.map((e) => ({
         type: "Feature",
-        geometry: JSON.parse(e.geometry),
+        geometry: e.geometry ? JSON.parse(e.geometry) : null,
         properties: {
+          id: e.id,
           code: e.code,
           nom: e.nom,
+          abreviation_categorie: e.abreviation_categorie,
           categorie: e.categorie,
-          reseau: e.reseau,
+          id_categorie: e.id_categorie,
           milieu: e.milieu,
+          longitude: e.longitude,
+          latitude: e.latitude,
           code_region: e.code_region,
           code_province: e.code_province,
           code_iso: e.code_iso,
+          delegation: e.delegation,
+          cs: e.cs,
           region: e.code_region,
           province: e.code_province,
           commune: e.code_iso,
@@ -135,4 +142,4 @@ router.get("/", async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

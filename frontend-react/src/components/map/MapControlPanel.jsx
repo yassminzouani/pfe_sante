@@ -11,6 +11,8 @@ export default function MapControlPanel({
   setTogglePharmacies,
   toggleMedecinsPrives,
   setToggleMedecinsPrives,
+  toggleCabinets,
+  setToggleCabinets,
   totalMedecinsPrives,
   resetMap,
   handleLogout
@@ -93,6 +95,23 @@ export default function MapControlPanel({
               <span style={styles.toggleTitle}>Pharmacies</span>
               <span style={styles.toggleSubtext}>
                 Réseau officinal visible sur la carte
+              </span>
+            </div>
+          </label>
+        </div>
+
+        <div style={styles.toggleCard}>
+          <label style={styles.toggleLabelWrap}>
+            <input
+              type="checkbox"
+              checked={toggleCabinets}
+              onChange={(e) => setToggleCabinets(e.target.checked)}
+              style={styles.checkbox}
+            />
+            <div style={styles.toggleTextWrap}>
+              <span style={styles.toggleTitle}>Cabinets</span>
+              <span style={styles.toggleSubtext}>
+                Cabinets médicaux privés visibles sur la carte
               </span>
             </div>
           </label>

@@ -25,10 +25,10 @@ function getNameFromFeature(feature, mode) {
   }
 
   if (mode === "provinces") {
-    return props.nom || props.nom_province || props.label || "Province";
+    return props.nom_province || props.nom || props.label || "Province";
   }
 
-  return props.nom || props.nom_commune || props.label || "Commune";
+  return props.nom_commune || props.nom || props.label || "Commune";
 }
 
 function getStatsUrl({ mode, codeRegion, codeProvince }) {
@@ -36,19 +36,19 @@ function getStatsUrl({ mode, codeRegion, codeProvince }) {
 
   if (mode === "regions") {
     if (codeRegion) params.set("code_region", codeRegion);
-    return `http://localhost:3000/api/medecins-prives/regions?${params}`;
+    return `http://localhost:3000/api/medecins-prives/regions?${params.toString()}`;
   }
 
   if (mode === "provinces") {
     if (codeRegion) params.set("code_region", codeRegion);
     if (codeProvince) params.set("code_province", codeProvince);
-    return `http://localhost:3000/api/medecins-prives/provinces?${params}`;
+    return `http://localhost:3000/api/medecins-prives/provinces?${params.toString()}`;
   }
 
   if (codeRegion) params.set("code_region", codeRegion);
   if (codeProvince) params.set("code_province", codeProvince);
 
-  return `http://localhost:3000/api/medecins-prives/communes?${params}`;
+  return `http://localhost:3000/api/medecins-prives/communes?${params.toString()}`;
 }
 
 function getDetailsUrl({ mode, code }) {
@@ -63,7 +63,7 @@ function getDetailsUrl({ mode, code }) {
     params.set("code_iso", code);
   }
 
-  return `http://localhost:3000/api/medecins-prives/details?${params}`;
+  return `http://localhost:3000/api/medecins-prives/details?${params.toString()}`;
 }
 
 function getStatCode(item, mode) {
@@ -158,7 +158,7 @@ export async function loadMedecinsPrivesLayer({
       const name = getNameFromFeature(feature, mode);
       const total = totalsByCode.get(code) || 0;
 
-      if (total > 0) {
+      if (total > 0 && layer?.getBounds) {
         const center = layer.getBounds().getCenter();
 
         const marker = L.marker(center, {
@@ -166,7 +166,6 @@ export async function loadMedecinsPrivesLayer({
           interactive: true
         });
 
-        // 🔥 CLICK → DETAILS
         marker.on("click", async () => {
           try {
             const detailsUrl = getDetailsUrl({ mode, code });
@@ -175,8 +174,8 @@ export async function loadMedecinsPrivesLayer({
             const html = `
               <div style="min-width:260px">
                 <div><b>${name}</b></div>
-                <div><b>Total :</b> ${details.total}</div>
-                <div><b>Généralistes :</b> ${details.generalistes}</div>
+                <div><b>Total :</b> ${details.total ?? 0}</div>
+                <div><b>Généralistes :</b> ${details.generalistes ?? 0}</div>
 
                 <div style="margin-top:8px"><b>Spécialités :</b></div>
                 <ul style="margin:6px 0 0 16px">
@@ -184,7 +183,7 @@ export async function loadMedecinsPrivesLayer({
                     details.specialites?.length
                       ? details.specialites
                           .slice(0, 8)
-                          .map(s => `<li>${s.specialite} : ${s.total}</li>`)
+                          .map((s) => `<li>${s.specialite} : ${s.total}</li>`)
                           .join("")
                       : "<li>Aucune donnée</li>"
                   }
@@ -193,7 +192,6 @@ export async function loadMedecinsPrivesLayer({
             `;
 
             marker.bindPopup(html).openPopup();
-
           } catch (err) {
             console.error("Erreur details:", err);
           }
@@ -208,7 +206,6 @@ export async function loadMedecinsPrivesLayer({
     }
 
     return { totalGlobal };
-
   } catch (err) {
     console.error("Erreur loadMedecinsPrivesLayer:", err);
     return { totalGlobal: 0 };

@@ -39,13 +39,16 @@ export function syncFacilitiesVisibility({
   map
 }) {
   if (!facilitiesGroupRef.current) return;
+
   facilitiesGroupRef.current.clearLayers();
 
   if (toggleFacilities && facilitiesLayerRef.current) {
     facilitiesGroupRef.current.addLayer(facilitiesLayerRef.current);
+
     if (facilitiesLayerRef.current.bringToFront) {
       facilitiesLayerRef.current.bringToFront();
     }
+
     updateFacilityMarkerSizes(map, facilitiesLayerRef);
   }
 }
@@ -57,6 +60,7 @@ export async function loadEtablissementsLayer({
   province,
   commune,
   categorie,
+  milieu,
   facilitiesLayerRef,
   facilitiesGroupRef,
   toggleFacilities
@@ -71,7 +75,8 @@ export async function loadEtablissementsLayer({
     region,
     province,
     commune,
-    categorie
+    categorie,
+    milieu
   });
 
   const geoJsonOptions = {

@@ -6,6 +6,7 @@ import { fetchCategories } from "../map/api";
 import { MAROC_BOUNDS } from "../map/styles";
 import { syncFacilitiesVisibility } from "../map/etablissementsLayer";
 import { syncPharmaciesVisibility } from "../map/pharmaciesLayer";
+import { syncCabinetsVisibility } from "../map/cabinetsLayer";
 
 import LoadingOverlay from "../components/map/LoadingOverlay";
 import MapControlPanel from "../components/map/MapControlPanel";
@@ -29,9 +30,11 @@ export default function MapPage() {
 
   const facilitiesLayerRef = useRef(null);
   const pharmaciesLayerRef = useRef(null);
+  const cabinetsLayerRef = useRef(null);
 
   const facilitiesGroupRef = useRef(null);
   const pharmaciesGroupRef = useRef(null);
+  const cabinetsGroupRef = useRef(null);
 
   const moveTimeoutRef = useRef(null);
   const isReloadingRef = useRef(false);
@@ -45,6 +48,7 @@ export default function MapPage() {
   const [toggleFacilities, setToggleFacilities] = useState(true);
   const [togglePharmacies, setTogglePharmacies] = useState(true);
   const [toggleMedecinsPrives, setToggleMedecinsPrives] = useState(true);
+  const [toggleCabinets, setToggleCabinets] = useState(true);
 
   const [totalMedecinsPrives, setTotalMedecinsPrives] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -85,11 +89,14 @@ export default function MapPage() {
     toggleFacilities,
     togglePharmacies,
     toggleMedecinsPrives,
+    toggleCabinets,
     adminLayerRef,
     facilitiesLayerRef,
     facilitiesGroupRef,
     pharmaciesLayerRef,
     pharmaciesGroupRef,
+    cabinetsLayerRef,
+    cabinetsGroupRef,
     isMapReadyRef,
     isReloadingRef,
     isMountedRef,
@@ -106,6 +113,7 @@ export default function MapPage() {
     setToggleFacilities(true);
     setTogglePharmacies(true);
     setToggleMedecinsPrives(true);
+    setToggleCabinets(true);
     setTotalMedecinsPrives(0);
 
     map.fitBounds(MAROC_BOUNDS);
@@ -118,6 +126,7 @@ export default function MapPage() {
     facilitiesLayerRef,
     facilitiesGroupRef,
     pharmaciesGroupRef,
+    cabinetsGroupRef,
     moveTimeoutRef,
     isMapReadyRef,
     isReloadingRef,
@@ -144,6 +153,15 @@ export default function MapPage() {
   }, [togglePharmacies]);
 
   useEffect(() => {
+    syncCabinetsVisibility({
+      toggleCabinets,
+      cabinetsGroupRef,
+      cabinetsLayerRef,
+      map: mapRef.current
+    });
+  }, [toggleCabinets]);
+
+  useEffect(() => {
     if (!isMapReadyRef.current) return;
     reloadData();
   }, [reloadData]);
@@ -168,6 +186,8 @@ export default function MapPage() {
         setTogglePharmacies={setTogglePharmacies}
         toggleMedecinsPrives={toggleMedecinsPrives}
         setToggleMedecinsPrives={setToggleMedecinsPrives}
+        toggleCabinets={toggleCabinets}
+        setToggleCabinets={setToggleCabinets}
         totalMedecinsPrives={totalMedecinsPrives}
         resetMap={resetMap}
         handleLogout={handleLogout}

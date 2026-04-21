@@ -161,3 +161,40 @@ export function buildMedecinsPrivesPopup(commune, detailsHtml = "", loading = fa
     </div>
   `;
 }
+
+export function buildCabinetPopup(p) {
+  return `
+    <div style="min-width:260px; line-height:1.5;">
+      <div style="font-size:16px; font-weight:700; margin-bottom:8px;">
+        ${escapeHtml(p.nom_nettoye || "Cabinet")}
+      </div>
+
+      <div><b>Ville :</b> ${escapeHtml(p.ville_normalisee || "Non renseignée")}</div>
+
+      ${
+        p.maps_url
+          ? `
+            <div style="margin-top:10px;">
+              <a
+                href="${escapeHtml(p.maps_url)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                style="
+                  display:inline-block;
+                  padding:8px 10px;
+                  border-radius:8px;
+                  background:#16a34a;
+                  color:white;
+                  text-decoration:none;
+                  font-weight:600;
+                "
+              >
+                Ouvrir dans Maps
+              </a>
+            </div>
+          `
+          : ""
+      }
+    </div>
+  `;
+}
