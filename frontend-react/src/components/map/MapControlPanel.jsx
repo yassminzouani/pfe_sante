@@ -2,6 +2,8 @@ export default function MapControlPanel({
   styles,
   decoupage,
   setDecoupage,
+  accessMethod,
+  setAccessMethod,
   categories,
   categoryFilter,
   setCategoryFilter,
@@ -42,6 +44,24 @@ export default function MapControlPanel({
             <option value="regions">Régions</option>
             <option value="provinces">Provinces / Préfectures</option>
             <option value="communes">Communes</option>
+          </select>
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <label htmlFor="access-method-select" style={styles.label}>
+            Méthode d’accessibilité
+          </label>
+          <select
+            id="access-method-select"
+            value={accessMethod}
+            onChange={(e) => setAccessMethod(e.target.value)}
+            style={styles.select}
+          >
+            <option value="densite">Densité médicale</option>
+            <option value="apl">APL</option>
+            <option value="sfca">2SFCA</option>
+            <option value="gravitaire">Modèle gravitaire</option>
+            <option value="desert">Désert médical confirmé</option>
           </select>
         </div>
       </div>

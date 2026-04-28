@@ -13,6 +13,7 @@ export function useMapDataLoader({
   getMap,
   getMapBBox,
   decoupage,
+  accessMethod,
   categoryFilter,
   toggleFacilities,
   togglePharmacies,
@@ -41,9 +42,12 @@ export function useMapDataLoader({
     await loadAdminLayer({
       map,
       mode: decoupage,
-      adminLayerRef
+      adminLayerRef,
+      accessMethod
+
     });
-  }, [getMap, decoupage, adminLayerRef]);
+  }, [getMap, decoupage, adminLayerRef, accessMethod]);
+
 
   const loadEtablissements = useCallback(async () => {
     const map = getMap();
@@ -179,11 +183,11 @@ export function useMapDataLoader({
 
     try {
       await loadAdmin();
+      await loadEtablissements();
+      await loadPharmacies();
+      await loadCabinets();
+      await loadCliniques();
 
-    await loadEtablissements();
-    await loadPharmacies();
-    await loadCabinets();
-    await loadCliniques();
       if (adminLayerRef.current) {
         await loadMedecinsPrives();
       }

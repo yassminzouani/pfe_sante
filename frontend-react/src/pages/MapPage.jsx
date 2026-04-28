@@ -45,6 +45,8 @@ export default function MapPage() {
   const isMountedRef = useRef(false);
 
   const [decoupage, setDecoupage] = useState("regions");
+  const [accessMethod, setAccessMethod] = useState("densite");
+
   const [categories, setCategories] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("");
 
@@ -85,31 +87,33 @@ export default function MapPage() {
     }
   }, []);
 
-  const { loadMedecinsPrives, reloadData } = useMapDataLoader({
-    getMap,
-    getMapBBox,
-    decoupage,
-    categoryFilter,
-    toggleFacilities,
-    togglePharmacies,
-    toggleMedecinsPrives,
-    toggleCabinets,
-    toggleCliniques,
-    adminLayerRef,
-    facilitiesLayerRef,
-    facilitiesGroupRef,
-    pharmaciesLayerRef,
-    pharmaciesGroupRef,
-    cabinetsLayerRef,
-    cabinetsGroupRef,
-    cliniquesLayerRef,
-    cliniquesGroupRef,
-    isMapReadyRef,
-    isReloadingRef,
-    isMountedRef,
-    setLoading,
-    setTotalMedecinsPrives
-  });
+  const { loadMedecinsPrives, reloadData } =
+    useMapDataLoader({
+      getMap,
+      getMapBBox,
+      decoupage,
+      accessMethod,
+      categoryFilter,
+      toggleFacilities,
+      togglePharmacies,
+      toggleMedecinsPrives,
+      toggleCabinets,
+      toggleCliniques,
+      adminLayerRef,
+      facilitiesLayerRef,
+      facilitiesGroupRef,
+      pharmaciesLayerRef,
+      pharmaciesGroupRef,
+      cabinetsLayerRef,
+      cabinetsGroupRef,
+      cliniquesLayerRef,
+      cliniquesGroupRef,
+      isMapReadyRef,
+      isReloadingRef,
+      isMountedRef,
+      setLoading,
+      setTotalMedecinsPrives
+    });
 
   const resetMap = useCallback(() => {
     const map = getMap();
@@ -117,6 +121,8 @@ export default function MapPage() {
 
     setCategoryFilter("");
     setDecoupage("regions");
+    setAccessMethod("densite");
+
     setToggleFacilities(true);
     setTogglePharmacies(true);
     setToggleMedecinsPrives(true);
@@ -154,6 +160,11 @@ export default function MapPage() {
       map: mapRef.current
     });
   }, [toggleFacilities]);
+  
+  useEffect(() => {
+  if (!isMapReadyRef.current) return;
+  reloadData();
+}, [accessMethod]);
 
   useEffect(() => {
     syncPharmaciesVisibility({
@@ -191,12 +202,15 @@ export default function MapPage() {
     loadMedecinsPrives();
   }, [decoupage, toggleMedecinsPrives, loadMedecinsPrives]);
 
+
   return (
     <div style={styles.page}>
       <MapControlPanel
         styles={styles}
         decoupage={decoupage}
         setDecoupage={setDecoupage}
+        accessMethod={accessMethod}
+        setAccessMethod={setAccessMethod}
         categories={categories}
         categoryFilter={categoryFilter}
         setCategoryFilter={setCategoryFilter}
