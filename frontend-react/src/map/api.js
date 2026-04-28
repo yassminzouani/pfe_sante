@@ -100,3 +100,14 @@ export function fetchCabinets(params = {}) {
 
   return fetchJson(`${API}/cabinets?${search.toString()}`);
 }
+export function fetchCliniques(params = {}) {
+  const search = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== "") {
+      search.set(key, value);
+    }
+  });
+
+  return fetchJson(`${API}/cliniques?${search.toString()}`);
+}

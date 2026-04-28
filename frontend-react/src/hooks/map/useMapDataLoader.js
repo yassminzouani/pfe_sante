@@ -3,6 +3,7 @@ import { loadAdminLayer } from "../../map/adminLayer";
 import { loadEtablissementsLayer } from "../../map/etablissementsLayer";
 import { loadPharmaciesLayer } from "../../map/pharmaciesLayer";
 import { loadCabinetsLayer } from "../../map/cabinetsLayer";
+import { loadCliniquesLayer } from "../../map/cliniquesLayer";
 import {
   loadMedecinsPrivesLayer,
   clearMedecinsPrivesLayer
@@ -17,6 +18,7 @@ export function useMapDataLoader({
   togglePharmacies,
   toggleMedecinsPrives,
   toggleCabinets,
+  toggleCliniques,
   adminLayerRef,
   facilitiesLayerRef,
   facilitiesGroupRef,
@@ -24,6 +26,8 @@ export function useMapDataLoader({
   pharmaciesGroupRef,
   cabinetsLayerRef,
   cabinetsGroupRef,
+  cliniquesLayerRef,
+  cliniquesGroupRef,
   isMapReadyRef,
   isReloadingRef,
   isMountedRef,
@@ -110,6 +114,29 @@ export function useMapDataLoader({
     toggleCabinets
   ]);
 
+  const loadCliniques = useCallback(async () => {
+    const map = getMap();
+    const bbox = getMapBBox();
+
+    if (!map || !bbox) return;
+
+    await loadCliniquesLayer({
+      map,
+      bbox,
+      ville: null,
+      nom: null,
+      cliniquesLayerRef,
+      cliniquesGroupRef,
+      toggleCliniques
+    });
+  }, [
+    getMap,
+    getMapBBox,
+    cliniquesLayerRef,
+    cliniquesGroupRef,
+    toggleCliniques
+  ]);
+
   const loadMedecinsPrives = useCallback(async () => {
     const map = getMap();
 
@@ -153,12 +180,10 @@ export function useMapDataLoader({
     try {
       await loadAdmin();
 
-      await Promise.all([
-        loadEtablissements(),
-        loadPharmacies(),
-        loadCabinets()
-      ]);
-
+    await loadEtablissements();
+    await loadPharmacies();
+    await loadCabinets();
+    await loadCliniques();
       if (adminLayerRef.current) {
         await loadMedecinsPrives();
       }
@@ -181,6 +206,7 @@ export function useMapDataLoader({
     loadEtablissements,
     loadPharmacies,
     loadCabinets,
+    loadCliniques,
     loadMedecinsPrives,
     adminLayerRef
   ]);
@@ -190,6 +216,7 @@ export function useMapDataLoader({
     loadEtablissements,
     loadPharmacies,
     loadCabinets,
+    loadCliniques,
     loadMedecinsPrives,
     reloadData
   };

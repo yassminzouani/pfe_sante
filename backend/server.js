@@ -13,6 +13,7 @@ const medecinsPrivesRouter = require("./routes/medecinsPrives");
 const densiteMedicalRegionRoutes = require("./routes/densite_medical_region");
 const densiteMedicalProvinceRoutes = require("./routes/densite_medical_province");
 const densiteMedicalCommuneRoutes = require("./routes/densite_medical_commune");
+const cliniquesRouter = require("./routes/cliniques");
 
 const cabinetsPrivesRoutes = require("./routes/cabinetsPrives");
 
@@ -31,12 +32,14 @@ app.use(cors({
 
 app.use(express.json());
 
-// 🚫 Anti brute force
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-});
-app.use(limiter);
+app.use(
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 2000,
+    standardHeaders: true,
+    legacyHeaders: false
+  })
+);
 
 // 🔐 Route auth
 app.use("/api/auth", authRouter);
@@ -53,6 +56,7 @@ app.use("/api/densite-medical-region", densiteMedicalRegionRoutes);
 app.use("/api/densite-medical-province", densiteMedicalProvinceRoutes);
 app.use("/api/densite-medical-commune", densiteMedicalCommuneRoutes);
 app.use("/api/cabinets", cabinetsPrivesRoutes);
+app.use("/api/cliniques", cliniquesRouter);
 
 app.get("/", (req, res) => {
   res.send("API running 🚀");

@@ -7,6 +7,7 @@ import { MAROC_BOUNDS } from "../map/styles";
 import { syncFacilitiesVisibility } from "../map/etablissementsLayer";
 import { syncPharmaciesVisibility } from "../map/pharmaciesLayer";
 import { syncCabinetsVisibility } from "../map/cabinetsLayer";
+import { syncCliniquesVisibility } from "../map/cliniquesLayer";
 
 import LoadingOverlay from "../components/map/LoadingOverlay";
 import MapControlPanel from "../components/map/MapControlPanel";
@@ -31,10 +32,12 @@ export default function MapPage() {
   const facilitiesLayerRef = useRef(null);
   const pharmaciesLayerRef = useRef(null);
   const cabinetsLayerRef = useRef(null);
+  const cliniquesLayerRef = useRef(null);
 
   const facilitiesGroupRef = useRef(null);
   const pharmaciesGroupRef = useRef(null);
   const cabinetsGroupRef = useRef(null);
+  const cliniquesGroupRef = useRef(null);
 
   const moveTimeoutRef = useRef(null);
   const isReloadingRef = useRef(false);
@@ -49,6 +52,7 @@ export default function MapPage() {
   const [togglePharmacies, setTogglePharmacies] = useState(true);
   const [toggleMedecinsPrives, setToggleMedecinsPrives] = useState(true);
   const [toggleCabinets, setToggleCabinets] = useState(true);
+  const [toggleCliniques, setToggleCliniques] = useState(true);
 
   const [totalMedecinsPrives, setTotalMedecinsPrives] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -90,6 +94,7 @@ export default function MapPage() {
     togglePharmacies,
     toggleMedecinsPrives,
     toggleCabinets,
+    toggleCliniques,
     adminLayerRef,
     facilitiesLayerRef,
     facilitiesGroupRef,
@@ -97,6 +102,8 @@ export default function MapPage() {
     pharmaciesGroupRef,
     cabinetsLayerRef,
     cabinetsGroupRef,
+    cliniquesLayerRef,
+    cliniquesGroupRef,
     isMapReadyRef,
     isReloadingRef,
     isMountedRef,
@@ -114,6 +121,7 @@ export default function MapPage() {
     setTogglePharmacies(true);
     setToggleMedecinsPrives(true);
     setToggleCabinets(true);
+    setToggleCliniques(true);
     setTotalMedecinsPrives(0);
 
     map.fitBounds(MAROC_BOUNDS);
@@ -126,7 +134,10 @@ export default function MapPage() {
     facilitiesLayerRef,
     facilitiesGroupRef,
     pharmaciesGroupRef,
+    cabinetsLayerRef,
     cabinetsGroupRef,
+    cliniquesLayerRef,
+    cliniquesGroupRef,
     moveTimeoutRef,
     isMapReadyRef,
     isReloadingRef,
@@ -162,6 +173,15 @@ export default function MapPage() {
   }, [toggleCabinets]);
 
   useEffect(() => {
+    syncCliniquesVisibility({
+      toggleCliniques,
+      cliniquesGroupRef,
+      cliniquesLayerRef,
+      map: mapRef.current
+    });
+  }, [toggleCliniques]);
+
+  useEffect(() => {
     if (!isMapReadyRef.current) return;
     reloadData();
   }, [reloadData]);
@@ -188,6 +208,8 @@ export default function MapPage() {
         setToggleMedecinsPrives={setToggleMedecinsPrives}
         toggleCabinets={toggleCabinets}
         setToggleCabinets={setToggleCabinets}
+        toggleCliniques={toggleCliniques}
+        setToggleCliniques={setToggleCliniques}
         totalMedecinsPrives={totalMedecinsPrives}
         resetMap={resetMap}
         handleLogout={handleLogout}

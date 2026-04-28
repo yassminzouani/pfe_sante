@@ -5,6 +5,7 @@ import { MAROC_BOUNDS } from "../../map/styles";
 import { loadMaskMaroc } from "../../map/adminLayer";
 import { updateFacilityMarkerSizes } from "../../map/etablissementsLayer";
 import { updateCabinetMarkerSizes } from "../../map/cabinetsLayer";
+import { updateCliniqueMarkerSizes } from "../../map/cliniquesLayer";
 
 export function useLeafletMap({
   mapRef,
@@ -15,6 +16,8 @@ export function useLeafletMap({
   pharmaciesGroupRef,
   cabinetsLayerRef,
   cabinetsGroupRef,
+  cliniquesLayerRef,
+  cliniquesGroupRef,
   moveTimeoutRef,
   isMapReadyRef,
   isReloadingRef,
@@ -47,10 +50,12 @@ export function useLeafletMap({
     facilitiesGroupRef.current = L.layerGroup().addTo(map);
     pharmaciesGroupRef.current = L.layerGroup().addTo(map);
     cabinetsGroupRef.current = L.layerGroup().addTo(map);
+    cliniquesGroupRef.current = L.layerGroup().addTo(map);
 
     const handleZoomEnd = () => {
       updateFacilityMarkerSizes(map, facilitiesLayerRef);
       updateCabinetMarkerSizes(map, cabinetsLayerRef);
+      updateCliniqueMarkerSizes(map, cliniquesLayerRef);
     };
 
     const handleMoveEnd = () => {
@@ -62,7 +67,7 @@ export function useLeafletMap({
         if (!isReloadingRef.current) {
           reloadData();
         }
-      }, 1000);
+      }, 2500);
     };
 
     map.on("zoomend", handleZoomEnd);
@@ -103,6 +108,7 @@ export function useLeafletMap({
       facilitiesGroupRef.current = null;
       pharmaciesGroupRef.current = null;
       cabinetsGroupRef.current = null;
+      cliniquesGroupRef.current = null;
     };
   }, [
     mapRef,
@@ -113,6 +119,8 @@ export function useLeafletMap({
     pharmaciesGroupRef,
     cabinetsLayerRef,
     cabinetsGroupRef,
+    cliniquesLayerRef,
+    cliniquesGroupRef,
     moveTimeoutRef,
     isMapReadyRef,
     isReloadingRef,

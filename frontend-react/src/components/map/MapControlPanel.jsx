@@ -13,6 +13,8 @@ export default function MapControlPanel({
   setToggleMedecinsPrives,
   toggleCabinets,
   setToggleCabinets,
+  toggleCliniques,
+  setToggleCliniques,
   totalMedecinsPrives,
   resetMap,
   handleLogout
@@ -112,6 +114,23 @@ export default function MapControlPanel({
               <span style={styles.toggleTitle}>Cabinets</span>
               <span style={styles.toggleSubtext}>
                 Cabinets médicaux privés visibles sur la carte
+              </span>
+            </div>
+          </label>
+        </div>
+
+        <div style={styles.toggleCard}>
+          <label style={styles.toggleLabelWrap}>
+            <input
+              type="checkbox"
+              checked={toggleCliniques}
+              onChange={(e) => setToggleCliniques(e.target.checked)}
+              style={styles.checkbox}
+            />
+            <div style={styles.toggleTextWrap}>
+              <span style={styles.toggleTitle}>Cliniques</span>
+              <span style={styles.toggleSubtext}>
+                Cliniques privées visibles sur la carte
               </span>
             </div>
           </label>

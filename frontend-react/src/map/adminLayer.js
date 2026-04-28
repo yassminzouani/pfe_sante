@@ -1,7 +1,20 @@
 import L from "leaflet";
-import { fetchRegionMedicalDensity } from "./api";
+import {
+  fetchRegionMedicalDensity,
+  fetchCommuneMedicalDensity
+} from "./api";
 
 const API_BASE = "http://localhost:3000/api";
+
+function isValidMap(map) {
+  return (
+    map &&
+    map._container &&
+    map._panes &&
+    map.getPane &&
+    map.getPane("overlayPane")
+  );
+}
 
 function getAdminStyle(mode) {
   if (mode === "regions") {
@@ -31,16 +44,24 @@ function getAdminStyle(mode) {
 }
 
 function getDensityColor(value) {
-  if (value == null) return "#d1d5db";
-  if (value < 2) return "#dc2626";
-  if (value < 4) return "#f97316";
-  if (value < 6) return "#facc15";
-  if (value < 8) return "#84cc16";
+  const densite = Number(value);
+
+  if (Number.isNaN(densite)) return "#d1d5db";
+  if (densite < 2) return "#d43a3a";
+  if (densite < 4) return "#f916ad";
+  if (densite < 6) return "#facc15";
+  if (densite < 8) return "#84cc16";
   return "#16a34a";
 }
 
 function getFeatureName(props = {}) {
-  return props.nom_region || props.nom || props.label || "Sans nom";
+  return (
+    props.nom_region ||
+    props.nom_commune ||
+    props.nom ||
+    props.label ||
+    "Sans nom"
+  );
 }
 
 function removeLayerIfExists(map, layerRef) {
@@ -75,9 +96,22 @@ function buildMaskCoordinates(geometry) {
   return [];
 }
 
+function buildDensityPopup({ name, stats }) {
+  return `
+    <div style="font-family: Arial, sans-serif; line-height: 1.5; min-width: 240px;">
+      <strong>${name}</strong><br/>
+      Population : ${stats?.population_rgph_2024 ?? "N/A"}<br/>
+      Médecins publics : ${stats?.nb_medecins_publics ?? 0}<br/>
+      Médecins privés : ${stats?.nb_medecins_prives ?? 0}<br/>
+      <strong>Total médecins : ${stats?.nb_medecins_total ?? 0}</strong><br/>
+      Densité : <strong>${stats?.densite_medecins_totale ?? "N/A"}</strong> / 10 000 hab.
+    </div>
+  `;
+}
+
 export async function loadMaskMaroc({ map, marocBorderRef }) {
   try {
-    if (!map) return;
+    if (!isValidMap(map)) return;
 
     removeLayerIfExists(map, marocBorderRef);
 
@@ -88,7 +122,6 @@ export async function loadMaskMaroc({ map, marocBorderRef }) {
 
     const marocFeature = await response.json();
     const geometry = marocFeature?.geometry;
-
     const marocHoles = buildMaskCoordinates(geometry);
 
     if (!marocHoles.length) {
@@ -103,15 +136,12 @@ export async function loadMaskMaroc({ map, marocBorderRef }) {
       [90, -180]
     ];
 
-    const maskLayer = L.polygon(
-      [outerRing, ...marocHoles],
-      {
-        stroke: false,
-        fillColor: "#f3f4f6",
-        fillOpacity: 0.72,
-        interactive: false
-      }
-    );
+    const maskLayer = L.polygon([outerRing, ...marocHoles], {
+      stroke: false,
+      fillColor: "#f3f4f6",
+      fillOpacity: 0.72,
+      interactive: false
+    });
 
     const borderLayer = L.geoJSON(marocFeature, {
       interactive: false,
@@ -124,6 +154,7 @@ export async function loadMaskMaroc({ map, marocBorderRef }) {
     });
 
     const group = L.layerGroup([maskLayer, borderLayer]);
+    if (!isValidMap(map)) return;
     group.addTo(map);
 
     marocBorderRef.current = group;
@@ -140,7 +171,7 @@ export async function loadAdminLayer({
   adminLayerRef
 }) {
   try {
-    if (!map) return;
+    if (!isValidMap(map)) return;
 
     removeLayerIfExists(map, adminLayerRef);
 
@@ -176,14 +207,23 @@ export async function loadAdminLayer({
       });
     }
 
+    if (mode === "communes") {
+      const densityData = await fetchCommuneMedicalDensity();
+
+      densityData.forEach((item) => {
+        densityMap[String(item.code_iso)] = item;
+      });
+    }
+
     let geoJsonLayer;
 
     geoJsonLayer = L.geoJSON(geojson, {
       interactive: true,
 
       style: (feature) => {
+        const props = feature?.properties || {};
+
         if (mode === "regions") {
-          const props = feature?.properties || {};
           const codeRegion = String(props.code_region ?? "");
           const stats = densityMap[codeRegion];
           const densite = stats?.densite_medecins_totale;
@@ -191,6 +231,19 @@ export async function loadAdminLayer({
           return {
             color: "#2563eb",
             weight: 2,
+            fillColor: getDensityColor(densite),
+            fillOpacity: 0.55
+          };
+        }
+
+        if (mode === "communes") {
+          const codeIso = String(props.code_iso ?? "");
+          const stats = densityMap[codeIso];
+          const densite = stats?.densite_medecins_totale;
+
+          return {
+            color: "#ea580c",
+            weight: 1,
             fillColor: getDensityColor(densite),
             fillOpacity: 0.55
           };
@@ -213,23 +266,32 @@ export async function loadAdminLayer({
           const codeRegion = String(props.code_region ?? "");
           const stats = densityMap[codeRegion];
 
-          featureLayer.bindPopup(`
-            <div style="font-family: Arial, sans-serif; line-height: 1.5; min-width: 220px;">
-              <strong>${name}</strong><br/>
-              Population : ${stats?.population_rgph_2024 ?? "N/A"}<br/>
-              Médecins publics : ${stats?.nb_medecins_publics ?? 0}<br/>
-              Médecins privés : ${stats?.nb_medecins_prives ?? 0}<br/>
-              <strong>Total médecins : ${stats?.nb_medecins_total ?? 0}</strong><br/>
-              Densité : <strong>${stats?.densite_medecins_totale ?? "N/A"}</strong> / 10 000 hab.
-            </div>
-          `);
+          featureLayer.bindPopup(
+            buildDensityPopup({
+              name,
+              stats
+            })
+          );
+        }
+
+        if (mode === "communes") {
+          const codeIso = String(props.code_iso ?? "");
+          const stats = densityMap[codeIso];
+
+          featureLayer.bindPopup(
+            buildDensityPopup({
+              name,
+              stats
+            })
+          );
         }
 
         featureLayer.on({
           mouseover: (e) => {
             e.target.setStyle({
               weight: baseStyle.weight + 1,
-              fillOpacity: mode === "regions" ? 0.75 : 0.3
+              fillOpacity:
+                mode === "regions" || mode === "communes" ? 0.75 : 0.3
             });
 
             if (typeof e.target.bringToFront === "function") {
@@ -244,7 +306,7 @@ export async function loadAdminLayer({
         });
       }
     });
-
+    if (!isValidMap(map)) return;
     geoJsonLayer.addTo(map);
     adminLayerRef.current = geoJsonLayer;
   } catch (error) {

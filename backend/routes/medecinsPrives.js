@@ -200,21 +200,21 @@ router.get("/details", async (req, res) => {
         return res.status(400).json({ error: "code_region requis" });
       }
 
-      where = `c.code_region::text = $1`;
+      where = `mps.code_region::text = $1`;
       values = [String(code_region)];
     } else if (mode === "provinces") {
       if (!code_province) {
         return res.status(400).json({ error: "code_province requis" });
       }
 
-      where = `c.code_province::text = $1`;
+      where = `mps.code_province::text = $1`;
       values = [String(code_province)];
     } else if (mode === "communes") {
       if (!code_iso) {
         return res.status(400).json({ error: "code_iso requis" });
       }
 
-      where = `c.code_iso::text = $1`;
+      where = `mps.code_iso::text = $1`;
       values = [String(code_iso)];
     } else {
       return res.status(400).json({ error: "mode invalide" });
@@ -222,21 +222,19 @@ router.get("/details", async (req, res) => {
 
     const totalSql = `
       SELECT COALESCE(SUM(mps.nombre), 0) AS total
-      FROM communes c
-      INNER JOIN medecins_prives_stats mps
-        ON mps.code::text = c.code_iso::text
+      FROM medecins_prives_stats mps
       WHERE ${where}
     `;
 
     const generalistesSql = `
       SELECT COALESCE(SUM(mps.nombre), 0) AS total_generalistes
-      FROM communes c
-      INNER JOIN medecins_prives_stats mps
-        ON mps.code::text = c.code_iso::text
+      FROM medecins_prives_stats mps
       WHERE ${where}
         AND (
           LOWER(COALESCE(mps.specialite, '')) LIKE '%general%'
           OR LOWER(COALESCE(mps.specialite, '')) LIKE '%général%'
+          OR LOWER(COALESCE(mps.specialite, '')) LIKE '%medecine generale%'
+          OR LOWER(COALESCE(mps.specialite, '')) LIKE '%médecine générale%'
         )
     `;
 
@@ -244,9 +242,7 @@ router.get("/details", async (req, res) => {
       SELECT
         COALESCE(mps.specialite, 'Non renseignée') AS specialite,
         COALESCE(SUM(mps.nombre), 0) AS total
-      FROM communes c
-      INNER JOIN medecins_prives_stats mps
-        ON mps.code::text = c.code_iso::text
+      FROM medecins_prives_stats mps
       WHERE ${where}
       GROUP BY COALESCE(mps.specialite, 'Non renseignée')
       ORDER BY total DESC
@@ -261,12 +257,14 @@ router.get("/details", async (req, res) => {
     res.json({
       total: Number(totalRes.rows[0]?.total || 0),
       generalistes: Number(genRes.rows[0]?.total_generalistes || 0),
-      specialites: specRes.rows
+      specialites: specRes.rows.map((row) => ({
+        specialite: row.specialite,
+        total: Number(row.total || 0)
+      }))
     });
   } catch (error) {
     console.error("Erreur GET /api/medecins-prives/details :", error);
     res.status(500).json({ error: error.message });
   }
 });
-
 module.exports = router;

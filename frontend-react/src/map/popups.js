@@ -198,3 +198,40 @@ export function buildCabinetPopup(p) {
     </div>
   `;
 }
+export function buildCliniquePopup(p) {
+  return `
+    <div style="min-width:260px; line-height:1.5;">
+      <div style="font-size:16px; font-weight:700; margin-bottom:8px;">
+        ${escapeHtml(p.nom_nettoye || "Clinique")}
+      </div>
+
+      <div><b>Ville :</b> ${escapeHtml(p.ville_normalisee || "Non renseignée")}</div>
+      <div><b>Type :</b> ${escapeHtml(p.type_etablissement || "Clinique")}</div>
+
+      ${
+        p.maps_url
+          ? `
+            <div style="margin-top:10px;">
+              <a
+                href="${escapeHtml(p.maps_url)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                style="
+                  display:inline-block;
+                  padding:8px 10px;
+                  border-radius:8px;
+                  background:#dc2626;
+                  color:white;
+                  text-decoration:none;
+                  font-weight:600;
+                "
+              >
+                Ouvrir dans Maps
+              </a>
+            </div>
+          `
+          : ""
+      }
+    </div>
+  `;
+}
