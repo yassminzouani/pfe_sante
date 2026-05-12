@@ -1,25 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logoutUser } from "../services/authService";
+
 import MapLegend from "../components/map/MapLegend";
+import LoadingOverlay from "../components/map/LoadingOverlay";
+import MapControlPanel from "../components/map/MapControlPanel";
+
 import { fetchCategories } from "../map/api";
 import { MAROC_BOUNDS } from "../map/styles";
 import { setLayerGroupVisibility } from "../map/layerVisibility";
+import { clearMedecinsPrivesLayer } from "../map/medecinsPrivesLayer";
 
-import LoadingOverlay from "../components/map/LoadingOverlay";
-import MapControlPanel from "../components/map/MapControlPanel";
 import { styles } from "./mapPage.styles";
 import { useMapDataLoader } from "../hooks/map/useMapDataLoader";
 import { useLeafletMap } from "../hooks/map/useLeafletMap";
-import { clearMedecinsPrivesLayer } from "../map/medecinsPrivesLayer";
 
 export default function MapPage() {
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logoutUser();
-    navigate("/login");
-  };
 
   const mapRef = useRef(null);
   const mapContainerRef = useRef(null);
@@ -37,14 +34,12 @@ export default function MapPage() {
   const cabinetsGroupRef = useRef(null);
   const cliniquesGroupRef = useRef(null);
 
-  const moveTimeoutRef = useRef(null);
   const isReloadingRef = useRef(false);
   const isMapReadyRef = useRef(false);
   const isMountedRef = useRef(false);
 
   const [decoupage, setDecoupage] = useState("regions");
   const [accessMethod, setAccessMethod] = useState("densite");
-
   const [distanceKm, setDistanceKm] = useState(10);
   const [analysisVersion, setAnalysisVersion] = useState(0);
 
@@ -59,6 +54,11 @@ export default function MapPage() {
 
   const [totalMedecinsPrives, setTotalMedecinsPrives] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  const handleLogout = useCallback(() => {
+    logoutUser();
+    navigate("/login");
+  }, [navigate]);
 
   const getMap = useCallback(() => mapRef.current, []);
 
@@ -94,7 +94,9 @@ export default function MapPage() {
 
   const {
     loadMedecinsPrives,
-    reloadData
+    reloadData,
+    reloadAnalysisOnly,
+    reloadPointsOnly
   } = useMapDataLoader({
     getMap,
     getMapBBox,
@@ -148,8 +150,8 @@ export default function MapPage() {
     setToggleMedecinsPrives(true);
     setToggleCabinets(true);
     setToggleCliniques(true);
-    setTotalMedecinsPrives(0);
 
+    setTotalMedecinsPrives(0);
     map.fitBounds(MAROC_BOUNDS);
   }, [getMap]);
 
@@ -169,7 +171,6 @@ export default function MapPage() {
     cliniquesLayerRef,
     cliniquesGroupRef,
 
-    moveTimeoutRef,
     isMapReadyRef,
     isReloadingRef,
     isMountedRef,
@@ -232,55 +233,42 @@ export default function MapPage() {
     }
 
     loadMedecinsPrives();
-  }, [
-    toggleMedecinsPrives,
-    decoupage,
-    loadMedecinsPrives
-  ]);
+  }, [toggleMedecinsPrives, decoupage]);
 
   useEffect(() => {
     if (!isMapReadyRef.current) return;
-    reloadData();
-  }, [
-    decoupage,
-    categoryFilter,
-    analysisVersion
-  ]);
+    reloadAnalysisOnly();
+  }, [decoupage, analysisVersion]);
+
+  useEffect(() => {
+    if (!isMapReadyRef.current) return;
+    reloadPointsOnly();
+  }, [categoryFilter]);
 
   return (
     <div style={styles.page}>
       <MapControlPanel
         styles={styles}
-
         decoupage={decoupage}
         setDecoupage={setDecoupage}
-
         accessMethod={accessMethod}
         setAccessMethod={setAccessMethod}
-
         distanceKm={distanceKm}
         setDistanceKm={setDistanceKm}
         launchAnalysis={launchAnalysis}
-
         categories={categories}
         categoryFilter={categoryFilter}
         setCategoryFilter={setCategoryFilter}
-
         toggleFacilities={toggleFacilities}
         setToggleFacilities={setToggleFacilities}
-
         togglePharmacies={togglePharmacies}
         setTogglePharmacies={setTogglePharmacies}
-
         toggleMedecinsPrives={toggleMedecinsPrives}
         setToggleMedecinsPrives={setToggleMedecinsPrives}
-
         toggleCabinets={toggleCabinets}
         setToggleCabinets={setToggleCabinets}
-
         toggleCliniques={toggleCliniques}
         setToggleCliniques={setToggleCliniques}
-
         totalMedecinsPrives={totalMedecinsPrives}
         resetMap={resetMap}
         handleLogout={handleLogout}

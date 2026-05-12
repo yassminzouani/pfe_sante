@@ -11,17 +11,22 @@ export function useLeafletMap({
   mapRef,
   mapContainerRef,
   marocBorderRef,
+
   facilitiesLayerRef,
   facilitiesGroupRef,
+
   pharmaciesGroupRef,
+
   cabinetsLayerRef,
   cabinetsGroupRef,
+
   cliniquesLayerRef,
   cliniquesGroupRef,
-  moveTimeoutRef,
+
   isMapReadyRef,
   isReloadingRef,
   isMountedRef,
+
   loadCategoriesData,
   reloadData
 }) {
@@ -36,7 +41,8 @@ export function useLeafletMap({
 
     const map = L.map(mapContainerRef.current, {
       minZoom: 6,
-      maxZoom: 12
+      maxZoom: 12,
+      preferCanvas: true
     });
 
     mapRef.current = map;
@@ -58,20 +64,7 @@ export function useLeafletMap({
       updateCliniqueMarkerSizes(map, cliniquesLayerRef);
     };
 
-    const handleMoveEnd = () => {
-      clearTimeout(moveTimeoutRef.current);
-
-      if (isReloadingRef.current) return;
-
-      moveTimeoutRef.current = setTimeout(() => {
-        if (!isReloadingRef.current) {
-          reloadData();
-        }
-      }, 2500);
-    };
-
     map.on("zoomend", handleZoomEnd);
-    map.on("moveend", handleMoveEnd);
 
     map.whenReady(async () => {
       try {
@@ -90,14 +83,12 @@ export function useLeafletMap({
     });
 
     return () => {
-      clearTimeout(moveTimeoutRef.current);
       isMapReadyRef.current = false;
       isReloadingRef.current = false;
       isMountedRef.current = false;
 
       try {
         map.off("zoomend", handleZoomEnd);
-        map.off("moveend", handleMoveEnd);
         map.remove();
       } catch (err) {
         console.warn("cleanup warning:", err);
@@ -114,17 +105,22 @@ export function useLeafletMap({
     mapRef,
     mapContainerRef,
     marocBorderRef,
+
     facilitiesLayerRef,
     facilitiesGroupRef,
+
     pharmaciesGroupRef,
+
     cabinetsLayerRef,
     cabinetsGroupRef,
+
     cliniquesLayerRef,
     cliniquesGroupRef,
-    moveTimeoutRef,
+
     isMapReadyRef,
     isReloadingRef,
     isMountedRef,
+
     loadCategoriesData,
     reloadData
   ]);

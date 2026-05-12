@@ -13,6 +13,7 @@ import { setLayerGroupVisibility } from "../../map/layerVisibility";
 export function useMapDataLoader({
   getMap,
   getMapBBox,
+
   decoupage,
   accessMethod,
   distanceKm,
@@ -132,7 +133,6 @@ export function useMapDataLoader({
 
   const loadPharmacies = useCallback(async () => {
     const bbox = getMapBBox();
-
     if (!bbox) return;
 
     await loadPharmaciesLayer({
@@ -194,6 +194,23 @@ export function useMapDataLoader({
     cliniquesGroupRef
   ]);
 
+  const loadPointsLayers = useCallback(async () => {
+    await Promise.all([
+      loadEtablissements(),
+      loadPharmacies(),
+      loadCabinets(),
+      loadCliniques()
+    ]);
+
+    applyVisibility();
+  }, [
+    loadEtablissements,
+    loadPharmacies,
+    loadCabinets,
+    loadCliniques,
+    applyVisibility
+  ]);
+
   const loadMedecinsPrives = useCallback(async () => {
     const map = getMap();
 
@@ -238,15 +255,7 @@ export function useMapDataLoader({
 
     try {
       await loadAdmin();
-
-      await Promise.all([
-        loadEtablissements(),
-        loadPharmacies(),
-        loadCabinets(),
-        loadCliniques()
-      ]);
-
-      applyVisibility();
+      await loadPointsLayers();
 
       if (adminLayerRef.current) {
         await loadMedecinsPrives();
@@ -267,23 +276,77 @@ export function useMapDataLoader({
     isMountedRef,
     setLoading,
     loadAdmin,
-    loadEtablissements,
-    loadPharmacies,
-    loadCabinets,
-    loadCliniques,
-    applyVisibility,
+    loadPointsLayers,
     loadMedecinsPrives,
     adminLayerRef
   ]);
 
-  return {
+  const reloadAnalysisOnly = useCallback(async () => {
+    const map = getMap();
+
+    if (!map || !isMapReadyRef.current || isReloadingRef.current) return;
+
+    isReloadingRef.current = true;
+
+    if (isMountedRef.current) {
+      setLoading(true);
+    }
+
+    try {
+      await loadAdmin();
+
+      if (adminLayerRef.current) {
+        await loadMedecinsPrives();
+      }
+
+      applyVisibility();
+    } catch (err) {
+      console.error("reloadAnalysisOnly error:", err);
+    } finally {
+      isReloadingRef.current = false;
+
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [
+    getMap,
+    isMapReadyRef,
+    isReloadingRef,
+    isMountedRef,
+    setLoading,
     loadAdmin,
-    loadEtablissements,
-    loadPharmacies,
-    loadCabinets,
-    loadCliniques,
     loadMedecinsPrives,
+    adminLayerRef,
+    applyVisibility
+  ]);
+
+  const reloadPointsOnly = useCallback(async () => {
+    const map = getMap();
+
+    if (!map || !isMapReadyRef.current || isReloadingRef.current) return;
+
+    isReloadingRef.current = true;
+
+    try {
+      await loadPointsLayers();
+    } catch (err) {
+      console.error("reloadPointsOnly error:", err);
+    } finally {
+      isReloadingRef.current = false;
+    }
+  }, [
+    getMap,
+    isMapReadyRef,
+    isReloadingRef,
+    loadPointsLayers
+  ]);
+
+  return {
     reloadData,
+    reloadAnalysisOnly,
+    reloadPointsOnly,
+    loadMedecinsPrives,
     applyVisibility
   };
 }
