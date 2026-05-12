@@ -83,7 +83,6 @@ export default function MapPage() {
   const loadCategoriesData = useCallback(async () => {
     try {
       const data = await fetchCategories();
-
       if (!isMountedRef.current) return;
 
       setCategories(Array.isArray(data) ? data : []);
@@ -95,8 +94,7 @@ export default function MapPage() {
   const {
     loadMedecinsPrives,
     reloadData,
-    reloadAnalysisOnly,
-    reloadPointsOnly
+    reloadAnalysisOnly
   } = useMapDataLoader({
     getMap,
     getMapBBox,
@@ -239,11 +237,6 @@ export default function MapPage() {
     if (!isMapReadyRef.current) return;
     reloadAnalysisOnly();
   }, [decoupage, analysisVersion]);
-
-  useEffect(() => {
-    if (!isMapReadyRef.current) return;
-    reloadPointsOnly();
-  }, [categoryFilter]);
 
   return (
     <div style={styles.page}>

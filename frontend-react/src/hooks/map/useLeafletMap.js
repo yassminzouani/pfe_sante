@@ -76,6 +76,7 @@ export function useLeafletMap({
         await loadCategoriesData();
 
         isMapReadyRef.current = true;
+
         await reloadData();
       } catch (err) {
         console.error("map init error:", err);
@@ -96,6 +97,7 @@ export function useLeafletMap({
 
       mapRef.current = null;
       marocBorderRef.current = null;
+
       facilitiesGroupRef.current = null;
       pharmaciesGroupRef.current = null;
       cabinetsGroupRef.current = null;

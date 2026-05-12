@@ -17,7 +17,6 @@ export function useMapDataLoader({
   decoupage,
   accessMethod,
   distanceKm,
-  analysisVersion,
   categoryFilter,
 
   toggleFacilities,
@@ -102,8 +101,7 @@ export function useMapDataLoader({
     decoupage,
     adminLayerRef,
     accessMethod,
-    distanceKm,
-    analysisVersion
+    distanceKm
   ]);
 
   const loadEtablissements = useCallback(async () => {
@@ -321,31 +319,9 @@ export function useMapDataLoader({
     applyVisibility
   ]);
 
-  const reloadPointsOnly = useCallback(async () => {
-    const map = getMap();
-
-    if (!map || !isMapReadyRef.current || isReloadingRef.current) return;
-
-    isReloadingRef.current = true;
-
-    try {
-      await loadPointsLayers();
-    } catch (err) {
-      console.error("reloadPointsOnly error:", err);
-    } finally {
-      isReloadingRef.current = false;
-    }
-  }, [
-    getMap,
-    isMapReadyRef,
-    isReloadingRef,
-    loadPointsLayers
-  ]);
-
   return {
     reloadData,
     reloadAnalysisOnly,
-    reloadPointsOnly,
     loadMedecinsPrives,
     applyVisibility
   };
