@@ -111,3 +111,14 @@ export function fetchCliniques(params = {}) {
 
   return fetchJson(`${API}/cliniques?${search.toString()}`);
 }
+export function fetchAnalyseAccessibilite(params = {}) {
+  const search = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== "") {
+      search.set(key, value);
+    }
+  });
+
+  return fetchJson(`${API}/analyse-accessibilite?${search.toString()}`);
+}

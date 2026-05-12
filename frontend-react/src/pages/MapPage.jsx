@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logoutUser } from "../services/authService";
-
+import MapLegend from "../components/map/MapLegend";
 import { fetchCategories } from "../map/api";
 import { MAROC_BOUNDS } from "../map/styles";
-import { syncFacilitiesVisibility } from "../map/etablissementsLayer";
-import { syncPharmaciesVisibility } from "../map/pharmaciesLayer";
-import { syncCabinetsVisibility } from "../map/cabinetsLayer";
-import { syncCliniquesVisibility } from "../map/cliniquesLayer";
+import { setLayerGroupVisibility } from "../map/layerVisibility";
 
 import LoadingOverlay from "../components/map/LoadingOverlay";
 import MapControlPanel from "../components/map/MapControlPanel";
 import { styles } from "./mapPage.styles";
 import { useMapDataLoader } from "../hooks/map/useMapDataLoader";
 import { useLeafletMap } from "../hooks/map/useLeafletMap";
+import { clearMedecinsPrivesLayer } from "../map/medecinsPrivesLayer";
 
 export default function MapPage() {
   const navigate = useNavigate();
@@ -47,6 +45,9 @@ export default function MapPage() {
   const [decoupage, setDecoupage] = useState("regions");
   const [accessMethod, setAccessMethod] = useState("densite");
 
+  const [distanceKm, setDistanceKm] = useState(10);
+  const [analysisVersion, setAnalysisVersion] = useState(0);
+
   const [categories, setCategories] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("");
 
@@ -75,6 +76,10 @@ export default function MapPage() {
     ].join(",");
   }, [getMap]);
 
+  const launchAnalysis = useCallback(() => {
+    setAnalysisVersion((value) => value + 1);
+  }, []);
+
   const loadCategoriesData = useCallback(async () => {
     try {
       const data = await fetchCategories();
@@ -87,33 +92,46 @@ export default function MapPage() {
     }
   }, []);
 
-  const { loadMedecinsPrives, reloadData } =
-    useMapDataLoader({
-      getMap,
-      getMapBBox,
-      decoupage,
-      accessMethod,
-      categoryFilter,
-      toggleFacilities,
-      togglePharmacies,
-      toggleMedecinsPrives,
-      toggleCabinets,
-      toggleCliniques,
-      adminLayerRef,
-      facilitiesLayerRef,
-      facilitiesGroupRef,
-      pharmaciesLayerRef,
-      pharmaciesGroupRef,
-      cabinetsLayerRef,
-      cabinetsGroupRef,
-      cliniquesLayerRef,
-      cliniquesGroupRef,
-      isMapReadyRef,
-      isReloadingRef,
-      isMountedRef,
-      setLoading,
-      setTotalMedecinsPrives
-    });
+  const {
+    loadMedecinsPrives,
+    reloadData
+  } = useMapDataLoader({
+    getMap,
+    getMapBBox,
+
+    decoupage,
+    accessMethod,
+    distanceKm,
+    analysisVersion,
+    categoryFilter,
+
+    toggleFacilities,
+    togglePharmacies,
+    toggleMedecinsPrives,
+    toggleCabinets,
+    toggleCliniques,
+
+    adminLayerRef,
+
+    facilitiesLayerRef,
+    facilitiesGroupRef,
+
+    pharmaciesLayerRef,
+    pharmaciesGroupRef,
+
+    cabinetsLayerRef,
+    cabinetsGroupRef,
+
+    cliniquesLayerRef,
+    cliniquesGroupRef,
+
+    isMapReadyRef,
+    isReloadingRef,
+    isMountedRef,
+
+    setLoading,
+    setTotalMedecinsPrives
+  });
 
   const resetMap = useCallback(() => {
     const map = getMap();
@@ -122,6 +140,8 @@ export default function MapPage() {
     setCategoryFilter("");
     setDecoupage("regions");
     setAccessMethod("densite");
+    setDistanceKm(10);
+    setAnalysisVersion((value) => value + 1);
 
     setToggleFacilities(true);
     setTogglePharmacies(true);
@@ -137,99 +157,137 @@ export default function MapPage() {
     mapRef,
     mapContainerRef,
     marocBorderRef,
+
     facilitiesLayerRef,
     facilitiesGroupRef,
+
     pharmaciesGroupRef,
+
     cabinetsLayerRef,
     cabinetsGroupRef,
+
     cliniquesLayerRef,
     cliniquesGroupRef,
+
     moveTimeoutRef,
     isMapReadyRef,
     isReloadingRef,
     isMountedRef,
+
     loadCategoriesData,
     reloadData
   });
 
   useEffect(() => {
-    syncFacilitiesVisibility({
-      toggleFacilities,
-      facilitiesGroupRef,
-      facilitiesLayerRef,
-      map: mapRef.current
+    const map = mapRef.current;
+    if (!map) return;
+
+    setLayerGroupVisibility({
+      map,
+      groupRef: facilitiesGroupRef,
+      visible: toggleFacilities
     });
   }, [toggleFacilities]);
-  
-  useEffect(() => {
-  if (!isMapReadyRef.current) return;
-  reloadData();
-}, [accessMethod]);
 
   useEffect(() => {
-    syncPharmaciesVisibility({
-      togglePharmacies,
-      pharmaciesGroupRef,
-      pharmaciesLayerRef
+    const map = mapRef.current;
+    if (!map) return;
+
+    setLayerGroupVisibility({
+      map,
+      groupRef: pharmaciesGroupRef,
+      visible: togglePharmacies
     });
   }, [togglePharmacies]);
 
   useEffect(() => {
-    syncCabinetsVisibility({
-      toggleCabinets,
-      cabinetsGroupRef,
-      cabinetsLayerRef,
-      map: mapRef.current
+    const map = mapRef.current;
+    if (!map) return;
+
+    setLayerGroupVisibility({
+      map,
+      groupRef: cabinetsGroupRef,
+      visible: toggleCabinets
     });
   }, [toggleCabinets]);
 
   useEffect(() => {
-    syncCliniquesVisibility({
-      toggleCliniques,
-      cliniquesGroupRef,
-      cliniquesLayerRef,
-      map: mapRef.current
+    const map = mapRef.current;
+    if (!map) return;
+
+    setLayerGroupVisibility({
+      map,
+      groupRef: cliniquesGroupRef,
+      visible: toggleCliniques
     });
   }, [toggleCliniques]);
 
   useEffect(() => {
     if (!isMapReadyRef.current) return;
-    reloadData();
-  }, [reloadData]);
+
+    if (!toggleMedecinsPrives) {
+      clearMedecinsPrivesLayer(adminLayerRef, mapRef.current);
+      setTotalMedecinsPrives(0);
+      return;
+    }
+
+    loadMedecinsPrives();
+  }, [
+    toggleMedecinsPrives,
+    decoupage,
+    loadMedecinsPrives
+  ]);
 
   useEffect(() => {
     if (!isMapReadyRef.current) return;
-    loadMedecinsPrives();
-  }, [decoupage, toggleMedecinsPrives, loadMedecinsPrives]);
-
+    reloadData();
+  }, [
+    decoupage,
+    categoryFilter,
+    analysisVersion
+  ]);
 
   return (
     <div style={styles.page}>
       <MapControlPanel
         styles={styles}
+
         decoupage={decoupage}
         setDecoupage={setDecoupage}
+
         accessMethod={accessMethod}
         setAccessMethod={setAccessMethod}
+
+        distanceKm={distanceKm}
+        setDistanceKm={setDistanceKm}
+        launchAnalysis={launchAnalysis}
+
         categories={categories}
         categoryFilter={categoryFilter}
         setCategoryFilter={setCategoryFilter}
+
         toggleFacilities={toggleFacilities}
         setToggleFacilities={setToggleFacilities}
+
         togglePharmacies={togglePharmacies}
         setTogglePharmacies={setTogglePharmacies}
+
         toggleMedecinsPrives={toggleMedecinsPrives}
         setToggleMedecinsPrives={setToggleMedecinsPrives}
+
         toggleCabinets={toggleCabinets}
         setToggleCabinets={setToggleCabinets}
+
         toggleCliniques={toggleCliniques}
         setToggleCliniques={setToggleCliniques}
+
         totalMedecinsPrives={totalMedecinsPrives}
         resetMap={resetMap}
         handleLogout={handleLogout}
       />
 
       <LoadingOverlay loading={loading} style={styles.loading} />
+      <MapLegend accessMethod={accessMethod} />
 
       <div ref={mapContainerRef} style={styles.map} />
     </div>

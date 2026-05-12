@@ -15,8 +15,9 @@ const densiteMedicalCommuneRoutes = require("./routes/densite_medical_commune");
 const cliniquesRouter = require("./routes/cliniques");
 const comparaisonAccessibiliteRoutes = require("./routes/comparaisonAccessibilite");
 const cabinetsPrivesRoutes = require("./routes/cabinetsPrives");
+const analyseAccessibiliteRoutes = require("./routes/analyseAccessibilite");
 
-// 🔐 Auth
+//  Auth
 const authRouter = require("./routes/auth");
 
 const app = express();
@@ -56,6 +57,7 @@ app.use("/api/densite-medical-commune", densiteMedicalCommuneRoutes);
 app.use("/api/cabinets", cabinetsPrivesRoutes);
 app.use("/api/cliniques", cliniquesRouter);
 app.use("/api/comparaison-accessibilite", comparaisonAccessibiliteRoutes);
+app.use("/api/analyse-accessibilite", analyseAccessibiliteRoutes);
 app.get("/", (req, res) => {
 
   res.send("API running 🚀");

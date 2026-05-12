@@ -8,33 +8,83 @@ import {
   loadMedecinsPrivesLayer,
   clearMedecinsPrivesLayer
 } from "../../map/medecinsPrivesLayer";
+import { setLayerGroupVisibility } from "../../map/layerVisibility";
 
 export function useMapDataLoader({
   getMap,
   getMapBBox,
   decoupage,
   accessMethod,
+  distanceKm,
+  analysisVersion,
   categoryFilter,
+
   toggleFacilities,
   togglePharmacies,
   toggleMedecinsPrives,
   toggleCabinets,
   toggleCliniques,
+
   adminLayerRef,
+
   facilitiesLayerRef,
   facilitiesGroupRef,
+
   pharmaciesLayerRef,
   pharmaciesGroupRef,
+
   cabinetsLayerRef,
   cabinetsGroupRef,
+
   cliniquesLayerRef,
   cliniquesGroupRef,
+
   isMapReadyRef,
   isReloadingRef,
   isMountedRef,
+
   setLoading,
   setTotalMedecinsPrives
 }) {
+  const applyVisibility = useCallback(() => {
+    const map = getMap();
+    if (!map) return;
+
+    setLayerGroupVisibility({
+      map,
+      groupRef: facilitiesGroupRef,
+      visible: toggleFacilities
+    });
+
+    setLayerGroupVisibility({
+      map,
+      groupRef: pharmaciesGroupRef,
+      visible: togglePharmacies
+    });
+
+    setLayerGroupVisibility({
+      map,
+      groupRef: cabinetsGroupRef,
+      visible: toggleCabinets
+    });
+
+    setLayerGroupVisibility({
+      map,
+      groupRef: cliniquesGroupRef,
+      visible: toggleCliniques
+    });
+  }, [
+    getMap,
+    facilitiesGroupRef,
+    pharmaciesGroupRef,
+    cabinetsGroupRef,
+    cliniquesGroupRef,
+    toggleFacilities,
+    togglePharmacies,
+    toggleCabinets,
+    toggleCliniques
+  ]);
+
   const loadAdmin = useCallback(async () => {
     const map = getMap();
     if (!map) return;
@@ -43,11 +93,17 @@ export function useMapDataLoader({
       map,
       mode: decoupage,
       adminLayerRef,
-      accessMethod
-
+      accessMethod,
+      distanceKm
     });
-  }, [getMap, decoupage, adminLayerRef, accessMethod]);
-
+  }, [
+    getMap,
+    decoupage,
+    adminLayerRef,
+    accessMethod,
+    distanceKm,
+    analysisVersion
+  ]);
 
   const loadEtablissements = useCallback(async () => {
     const map = getMap();
@@ -64,19 +120,19 @@ export function useMapDataLoader({
       categorie: categoryFilter,
       facilitiesLayerRef,
       facilitiesGroupRef,
-      toggleFacilities
+      toggleFacilities: true
     });
   }, [
     getMap,
     getMapBBox,
     categoryFilter,
     facilitiesLayerRef,
-    facilitiesGroupRef,
-    toggleFacilities
+    facilitiesGroupRef
   ]);
 
   const loadPharmacies = useCallback(async () => {
     const bbox = getMapBBox();
+
     if (!bbox) return;
 
     await loadPharmaciesLayer({
@@ -86,13 +142,12 @@ export function useMapDataLoader({
       commune: null,
       pharmaciesLayerRef,
       pharmaciesGroupRef,
-      togglePharmacies
+      togglePharmacies: true
     });
   }, [
     getMapBBox,
     pharmaciesLayerRef,
-    pharmaciesGroupRef,
-    togglePharmacies
+    pharmaciesGroupRef
   ]);
 
   const loadCabinets = useCallback(async () => {
@@ -108,14 +163,13 @@ export function useMapDataLoader({
       nom: null,
       cabinetsLayerRef,
       cabinetsGroupRef,
-      toggleCabinets
+      toggleCabinets: true
     });
   }, [
     getMap,
     getMapBBox,
     cabinetsLayerRef,
-    cabinetsGroupRef,
-    toggleCabinets
+    cabinetsGroupRef
   ]);
 
   const loadCliniques = useCallback(async () => {
@@ -131,18 +185,19 @@ export function useMapDataLoader({
       nom: null,
       cliniquesLayerRef,
       cliniquesGroupRef,
-      toggleCliniques
+      toggleCliniques: true
     });
   }, [
     getMap,
     getMapBBox,
     cliniquesLayerRef,
-    cliniquesGroupRef,
-    toggleCliniques
+    cliniquesGroupRef
   ]);
 
   const loadMedecinsPrives = useCallback(async () => {
     const map = getMap();
+
+    if (!map) return;
 
     if (!toggleMedecinsPrives) {
       clearMedecinsPrivesLayer(adminLayerRef, map);
@@ -150,7 +205,7 @@ export function useMapDataLoader({
       return;
     }
 
-    if (!adminLayerRef.current || !map) return;
+    if (!adminLayerRef.current) return;
 
     const result = await loadMedecinsPrivesLayer({
       map,
@@ -158,7 +213,7 @@ export function useMapDataLoader({
       codeRegion: null,
       codeProvince: null,
       adminLayerRef,
-      toggleMedecinsPrives
+      toggleMedecinsPrives: true
     });
 
     setTotalMedecinsPrives(Number(result?.totalGlobal || 0));
@@ -183,10 +238,15 @@ export function useMapDataLoader({
 
     try {
       await loadAdmin();
-      await loadEtablissements();
-      await loadPharmacies();
-      await loadCabinets();
-      await loadCliniques();
+
+      await Promise.all([
+        loadEtablissements(),
+        loadPharmacies(),
+        loadCabinets(),
+        loadCliniques()
+      ]);
+
+      applyVisibility();
 
       if (adminLayerRef.current) {
         await loadMedecinsPrives();
@@ -211,6 +271,7 @@ export function useMapDataLoader({
     loadPharmacies,
     loadCabinets,
     loadCliniques,
+    applyVisibility,
     loadMedecinsPrives,
     adminLayerRef
   ]);
@@ -222,6 +283,7 @@ export function useMapDataLoader({
     loadCabinets,
     loadCliniques,
     loadMedecinsPrives,
-    reloadData
+    reloadData,
+    applyVisibility
   };
 }

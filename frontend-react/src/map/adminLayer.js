@@ -273,11 +273,18 @@ function buildCommunePopup(name, stats, accessMethod) {
   return buildDensitePopup(name, stats);
 }
 
-async function fetchComparaisonAccessibilite() {
-  const response = await fetch(`${API_BASE}/comparaison-accessibilite`);
+async function fetchAnalyseAccessibilite({ accessMethod = "densite", distanceKm = 10 }) {
+  const params = new URLSearchParams();
+
+  params.set("method", accessMethod || "densite");
+  params.set("distance", distanceKm || 10);
+
+  const response = await fetch(`${API_BASE}/analyse-accessibilite?${params.toString()}`);
 
   if (!response.ok) {
-    throw new Error(`Erreur HTTP ${response.status} sur /comparaison-accessibilite`);
+    throw new Error(
+      `Erreur HTTP ${response.status} sur /analyse-accessibilite`
+    );
   }
 
   const geojson = await response.json();
@@ -352,7 +359,8 @@ export async function loadAdminLayer({
   currentRegionCode,
   currentProvinceCode,
   adminLayerRef,
-  accessMethod = "densite"
+  accessMethod = "densite",
+  distanceKm = 10
 }) {
   try {
     if (!isValidMap(map)) return;
@@ -384,8 +392,10 @@ export async function loadAdminLayer({
     let comparaisonMap = {};
 
     if (mode === "communes") {
-      comparaisonMap = await fetchComparaisonAccessibilite();
-    }
+comparaisonMap = await fetchAnalyseAccessibilite({
+  accessMethod,
+  distanceKm
+});    }
 
     let geoJsonLayer;
 

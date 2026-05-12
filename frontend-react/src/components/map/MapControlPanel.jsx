@@ -1,22 +1,52 @@
+const METHOD_DESCRIPTIONS = {
+  densite:
+    "La densité médicale mesure le nombre de médecins rapporté à la population. Elle ne tient pas compte des communes voisines.",
+
+  apl:
+    "L’APL estime l’accessibilité potentielle aux médecins en tenant compte de l’offre disponible autour de la commune et de la distance choisie.",
+
+  sfca:
+    "La méthode 2SFCA compare l’offre médicale disponible à la population accessible dans le rayon choisi, puis attribue un score d’accès à chaque commune.",
+
+  gravitaire:
+    "Le modèle gravitaire donne plus de poids aux médecins proches et réduit l’influence des médecins éloignés selon la distance.",
+
+  desert:
+    "Le désert médical confirmé identifie les communes critiques selon plusieurs indicateurs combinés : absence de médecins et faibles scores d’accessibilité."
+};
+
 export default function MapControlPanel({
   styles,
+
   decoupage,
   setDecoupage,
+
   accessMethod,
   setAccessMethod,
+
+  distanceKm,
+  setDistanceKm,
+  launchAnalysis,
+
   categories,
   categoryFilter,
   setCategoryFilter,
+
   toggleFacilities,
   setToggleFacilities,
+
   togglePharmacies,
   setTogglePharmacies,
+
   toggleMedecinsPrives,
   setToggleMedecinsPrives,
+
   toggleCabinets,
   setToggleCabinets,
+
   toggleCliniques,
   setToggleCliniques,
+
   totalMedecinsPrives,
   resetMap,
   handleLogout
@@ -35,6 +65,7 @@ export default function MapControlPanel({
           <label htmlFor="decoupage-select" style={styles.label}>
             Découpage administratif
           </label>
+
           <select
             id="decoupage-select"
             value={decoupage}
@@ -51,18 +82,93 @@ export default function MapControlPanel({
           <label htmlFor="access-method-select" style={styles.label}>
             Méthode d’accessibilité
           </label>
+
           <select
             id="access-method-select"
             value={accessMethod}
             onChange={(e) => setAccessMethod(e.target.value)}
             style={styles.select}
+            title={METHOD_DESCRIPTIONS[accessMethod]}
           >
-            <option value="densite">Densité médicale</option>
-            <option value="apl">APL</option>
-            <option value="sfca">2SFCA</option>
-            <option value="gravitaire">Modèle gravitaire</option>
-            <option value="desert">Désert médical confirmé</option>
+            <option
+              value="densite"
+              title="Nombre de médecins rapporté à la population."
+            >
+              Densité médicale
+            </option>
+
+            <option
+              value="apl"
+              title="Accessibilité potentielle locale selon l’offre, la population et la distance."
+            >
+              APL
+            </option>
+
+            <option
+              value="sfca"
+              title="Méthode offre-demande dans un rayon d’accès choisi."
+            >
+              2SFCA
+            </option>
+
+            <option
+              value="gravitaire"
+              title="Méthode qui pondère l’accès selon la distance aux médecins."
+            >
+              Modèle gravitaire
+            </option>
+
+            <option
+              value="desert"
+              title="Identification des communes critiques selon plusieurs indicateurs."
+            >
+              Désert médical confirmé
+            </option>
           </select>
+
+          <div
+            style={{
+              marginTop: 8,
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: "#f8fafc",
+              color: "#475569",
+              fontSize: 13,
+              lineHeight: 1.45,
+              border: "1px solid #e2e8f0"
+            }}
+          >
+            {METHOD_DESCRIPTIONS[accessMethod]}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <label htmlFor="distance-km-input" style={styles.label}>
+            Distance d’analyse en km
+          </label>
+
+          <input
+            id="distance-km-input"
+            type="number"
+            min="1"
+            max="200"
+            step="1"
+            value={distanceKm}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              setDistanceKm(Number.isFinite(value) ? value : 10);
+            }}
+            style={styles.select}
+          />
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <button
+            onClick={launchAnalysis}
+            style={styles.primaryButton || styles.secondaryButton}
+          >
+            Lancer l’analyse
+          </button>
         </div>
       </div>
 
@@ -77,6 +183,7 @@ export default function MapControlPanel({
               onChange={(e) => setToggleFacilities(e.target.checked)}
               style={styles.checkbox}
             />
+
             <div style={styles.toggleTextWrap}>
               <span style={styles.toggleTitle}>Établissements</span>
               <span style={styles.toggleSubtext}>
@@ -89,6 +196,7 @@ export default function MapControlPanel({
             <label htmlFor="categorie-select" style={styles.label}>
               Catégorie des établissements
             </label>
+
             <select
               id="categorie-select"
               value={categoryFilter}
@@ -96,6 +204,7 @@ export default function MapControlPanel({
               style={styles.select}
             >
               <option value="">Toutes les catégories</option>
+
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
@@ -113,6 +222,7 @@ export default function MapControlPanel({
               onChange={(e) => setTogglePharmacies(e.target.checked)}
               style={styles.checkbox}
             />
+
             <div style={styles.toggleTextWrap}>
               <span style={styles.toggleTitle}>Pharmacies</span>
               <span style={styles.toggleSubtext}>
@@ -130,6 +240,7 @@ export default function MapControlPanel({
               onChange={(e) => setToggleCabinets(e.target.checked)}
               style={styles.checkbox}
             />
+
             <div style={styles.toggleTextWrap}>
               <span style={styles.toggleTitle}>Cabinets</span>
               <span style={styles.toggleSubtext}>
@@ -147,6 +258,7 @@ export default function MapControlPanel({
               onChange={(e) => setToggleCliniques(e.target.checked)}
               style={styles.checkbox}
             />
+
             <div style={styles.toggleTextWrap}>
               <span style={styles.toggleTitle}>Cliniques</span>
               <span style={styles.toggleSubtext}>
@@ -164,6 +276,7 @@ export default function MapControlPanel({
               onChange={(e) => setToggleMedecinsPrives(e.target.checked)}
               style={styles.checkbox}
             />
+
             <div style={styles.toggleTextWrap}>
               <span style={styles.toggleTitle}>Médecins privés</span>
               <span style={styles.toggleSubtext}>
